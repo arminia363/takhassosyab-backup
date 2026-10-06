@@ -1364,6 +1364,12 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-
     $("thumbs").addEventListener("click", function(e){ var t = e.target; if (t && t.getAttribute && t.getAttribute("data-theme") != null){ state.theme = t.getAttribute("data-theme"); save(); renderBanner(true); } });
     $("dlBtn").addEventListener("click", downloadImg);
     $("shareImgBtn").addEventListener("click", shareImg);
+
+    document.addEventListener("click", function(e){
+      var a = e.target && e.target.closest ? e.target.closest("a") : null;
+      if (!a || !a.href || a.href.indexOf("t.me/") < 0) return;
+      if (window.Android && Android.shareAd) { e.preventDefault(); shareImg(); }
+    });
     $("showImgBtn").addEventListener("click", function(){ update(); renderBanner(true); showModal(); });
     $("modalClose").addEventListener("click", function(){ $("imgModal").className = "modal hidden"; });
     $("imgModal").addEventListener("click", function(e){ if (e.target === this) this.className = "modal hidden"; });
