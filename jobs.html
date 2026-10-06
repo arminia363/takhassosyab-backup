@@ -1,0 +1,9 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>آگهی‌های استخدام</title>
+<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{max-width:720px;margin:0 auto;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;font-size:16px;line-height:1.7;white-space:pre-wrap}a{color:#8fd0ff}</style></head>
+<body><div class="wrap"><h1>آگهی‌های استخدام</h1><p>برای همه باز است.</p><div id="box"></div><p><a href="index.html">بازگشت</a></p></div>
+<script>
+var feed=[]; try{feed=JSON.parse(localStorage.getItem("ty_feed")||"[]");}catch(e){}
+var rows=feed.filter(function(r){return r.type!=="jobseeker";});
+document.getElementById("box").innerHTML=rows.length?rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><br>"+(r.text||"")+"</div>";}).join(""):"<p>هنوز موردی نیست.</p>";
+</script></body></html>
