@@ -1,40 +1,21 @@
 ﻿<!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>تخصص‌یاب</title>
-<style>
-body{margin:0;background:#0f1720;color:#e7edf3;font-family:Tahoma,sans-serif}
-.wrap{max-width:480px;margin:0 auto;padding:20px}
-.hero{text-align:center;padding:12px 0 4px}
-img{width:88px;height:88px;border-radius:22px;object-fit:cover}
-input,button{width:100%;box-sizing:border-box;border-radius:12px;padding:14px;margin-top:10px;border:0;font-size:16px}
-button{background:#229ED9;color:#fff;font-weight:700}
-.card{background:#17212b;border-radius:16px;padding:14px}
-a{color:#8fd0ff}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div class="hero"><img src="logo.jpg" alt=""><h1>تخصص‌یاب</h1><p>آگهی استخدام و رزومه، بدون نقش ثابت.</p></div>
-  <form class="card" id="f">
-    <input id="name" placeholder="نام" required>
-    <input id="mobile" placeholder="موبایل" inputmode="numeric" required>
-    <button type="submit">ادامه</button>
-  </form>
-  <p><a href="employer.html">آگهی استخدام</a> · <a href="jobseeker.html">رزومه</a></p>
-</div>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>تخصص‌یاب</title>
+<style>body{margin:0;background:#0f1720;color:#e7edf3;font-family:Tahoma,sans-serif}.wrap{max-width:420px;margin:0 auto;padding:28px 16px;text-align:center}img{width:72px;height:72px;border-radius:18px;object-fit:cover}input,button{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:14px;margin-top:10px}button{background:#229ED9;color:#fff;font-weight:700}</style></head>
+<body><div class="wrap"><img src="logo.jpg" alt=""><h1>تخصص‌یاب</h1>
+<form id="f"><input id="name" placeholder="نام" required><input id="mobile" placeholder="موبایل" inputmode="numeric" required><button>ادامه</button></form></div>
 <script>
 var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
-if(localStorage.getItem("ty_user")) location.replace("index.html");
+function norm(s){return (s||"").replace(/[^0-9]/g,"").replace(/^98/,"0");}
+var saved=norm(localStorage.getItem("ty_mobile")||"");
+if(saved) location.replace("index.html");
 document.getElementById("f").onsubmit=function(e){
   e.preventDefault();
-  var p={type:"membership",name:name.value,mobile:mobile.value,telegram:"",role:"",field:"",city:"",years:"",source:"اپ",hp:""};
+  var mobile=norm(document.getElementById("mobile").value);
+  if(mobile && mobile===saved){location.replace("index.html");return;}
+  var p={type:"membership",name:document.getElementById("name").value,mobile:mobile,telegram:"",role:"",field:"",city:"",years:"",source:"اپ",hp:""};
   fetch(END,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)});
-  localStorage.setItem("ty_user",JSON.stringify(p));
-  location.replace("index.html");
+  localStorage.setItem("ty_mobile", mobile);
+  localStorage.setItem("ty_user", JSON.stringify(p));
+  setTimeout(function(){location.replace("index.html");}, 700);
 };
-</script>
-</body>
-</html>
+</script></body></html>
