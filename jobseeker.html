@@ -13,7 +13,7 @@
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Vazirmatn,"Vazirmatn FD",Vazir,Tahoma,"Noto Sans Arabic","Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.75;-webkit-tap-highlight-color:transparent}
 button,input,textarea,select{font:inherit;color:inherit}
-.wrap{max-width:980px;margin:0 auto;padding:12px 12px 0}
+.wrap{max-width:none;width:100%;margin:0;padding:8px 8px 0;box-sizing:border-box}
 .hero{background:linear-gradient(135deg,#229ED9,#1565a8);color:#fff;border-radius:18px;padding:18px 16px 16px;box-shadow:var(--shadow);margin-bottom:12px}
 .brand{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .logo{font-size:26px;font-weight:800;letter-spacing:-.5px}
@@ -133,7 +133,7 @@ select{width:100%;border:1.5px solid var(--line);background:var(--card);border-r
 @media (min-width:700px){.wrap{padding-top:20px}}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-<style>#shareImgBtn,#fbCopy,#fbDl,.steps,.sharenote{display:none!important}.actions{position:static;display:flex;gap:8px;margin-top:12px}.actions .btn{height:48px;padding:0 8px}</style><style>.adminaddr{text-align:center;font-size:15px;margin:8px 0;clear:both}</style><style>.wrap,.app,.page,.sheet{max-width:980px!important;width:100%!important}</style></head>
+<style>#shareImgBtn,#fbCopy,#fbDl,.steps,.sharenote{display:none!important}.actions{position:static;display:flex;gap:8px;margin-top:12px}.actions .btn{height:48px;padding:0 8px}</style><style>.adminaddr{text-align:center;font-size:15px;margin:8px 0;clear:both}</style><style>.wrap,.app,.page,.sheet{max-width:980px!important;width:100%!important}</style><style>.wrap{max-width:none!important;width:100%!important;padding:8px!important;box-sizing:border-box}</style></head>
 <body>
 <div class="wrap">
   <header class="hero">
