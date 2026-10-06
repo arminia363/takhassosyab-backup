@@ -1,0 +1,8 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>علاقه‌مندی‌ها</title>
+<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;white-space:pre-wrap;line-height:1.7}a{color:#8fd0ff}</style></head>
+<body><div class="wrap"><h1>علاقه‌مندی‌ها</h1><p>آگهی‌هایی که کارجو برای بررسی بعدی نگه داشته.</p><div id="box"></div><p><a href="jobs.html">آگهی‌های استخدام</a></p></div>
+<script>
+var rows=[]; try{rows=JSON.parse(localStorage.getItem("ty_fav")||"[]");}catch(e){}
+document.getElementById("box").innerHTML=rows.length?rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><br>"+(r.text||"")+"</div>";}).join(""):"<p>هنوز آگهی‌ای به علاقه‌مندی اضافه نشده.</p>";
+</script></body></html>
