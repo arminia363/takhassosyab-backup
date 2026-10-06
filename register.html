@@ -1,0 +1,39 @@
+﻿<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#229ED9">
+<title>ثبت تخصص‌یاب</title>
+<style>
+body{margin:0;background:#0f1720;color:#e7edf3;font-family:Tahoma,sans-serif}
+.wrap{max-width:640px;margin:0 auto;padding:16px}
+.hero{background:linear-gradient(135deg,#229ED9,#1565a8);border-radius:18px;padding:18px}
+.card{background:#17212b;border-radius:16px;padding:16px;margin-top:12px}
+input{width:100%;box-sizing:border-box;padding:12px;border-radius:10px;border:0;margin:8px 0}
+button{width:100%;background:#229ED9;color:#fff;border:0;border-radius:12px;padding:14px;font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero"><h1>تخصص‌یاب</h1><p>یک بار نام و موبایل را بنویس. نقش کارفرما یا کارجو لازم نیست.</p></header>
+  <form class="card" id="f">
+    <input id="name" placeholder="نام" required>
+    <input id="mobile" placeholder="شماره موبایل" inputmode="numeric" required>
+    <input id="telegram" placeholder="آیدی تلگرام، اختیاری">
+    <button type="submit">ثبت و ادامه</button>
+  </form>
+</div>
+<script>
+var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
+if(localStorage.getItem("ty_user")) location.replace("index.html");
+document.getElementById("f").onsubmit=function(e){
+  e.preventDefault();
+  var p={type:"membership",name:name.value,mobile:mobile.value,telegram:telegram.value,role:"",field:"",city:"",years:"",source:"اپ",hp:""};
+  fetch(END,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)});
+  localStorage.setItem("ty_user",JSON.stringify(p));
+  location.replace("index.html");
+};
+</script>
+</body>
+</html>
