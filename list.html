@@ -1,22 +1,21 @@
 ﻿<!DOCTYPE html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>فهرست تخصص‌یاب</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{max-width:640px;margin:0 auto;padding:16px}a{color:#8fd0ff}.card{background:#17212b;border-radius:12px;padding:12px;margin:10px 0}</style></head>
-<body><div class="wrap" id="app"></div>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>آگهی‌ها</title>
+<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{max-width:640px;margin:0 auto;padding:16px}.card{background:#17212b;border-radius:12px;padding:12px;margin:8px 0}a{color:#8fd0ff}</style></head>
+<body><div class="wrap">
+<h1>آگهی‌های کارفرما</h1>
+<p>این بخش برای همه باز است.</p>
+<div id="jobs"></div>
+<h1>رزومه‌ها</h1>
+<p>فقط رزومه‌ای که صاحبش تأیید کرده اینجا می‌آید.</p>
+<div id="cvs"></div>
+<p><a href="employer.html">ثبت آگهی</a> · <a href="jobseeker.html">ثبت رزومه</a></p>
+</div>
 <script>
-var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
-var app=document.getElementById("app");
-if(localStorage.getItem("ty_resume")!=="1"){
-  app.innerHTML="<h1>فهرست آگهی‌ها</h1><p>اول رزومه را بفرست.</p><p><a href=\"jobseeker.html\">فرستادن رزومه</a></p>";
-}else{
-  app.innerHTML="<h1>آگهی‌های عمومی</h1><p>فقط موردهایی که گزینه دید عموم را زده‌اند.</p><div id=\"list\">در حال خواندن...</div><p><a href=\"employer.html\">آگهی استخدام</a> · <a href=\"jobseeker.html\">رزومه</a></p>";
-  fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
-    var rows=[]; try{ rows=JSON.parse(localStorage.getItem("ty_feed")||"[]"); }catch(e){} if(d&&d.items) rows=rows.concat(d.items);
-    var h="";
-    for(var i=0;i<rows.length;i++){
-      if(rows[i].public!=="بله") continue;
-      h+="<div class=\"card\"><b>"+(rows[i].title||rows[i].name||"آگهی")+"</b><p>"+(rows[i].city||"")+"</p><p>"+(rows[i].text||"")+"</p></div>";
-    }
-    document.getElementById("list").innerHTML=h||"هنوز آگهی عمومی تأییدشده‌ای نیست.";
-  }).catch(function(){document.getElementById("list").textContent="فهرست هنوز از شیت خوانده نمی‌شود. گزینه دید عموم ذخیره می‌شود و بعد از تأیید ادمین اینجا می‌آید.";});
+function cards(rows){
+  if(!rows.length) return "<p>موردی نیست.</p>";
+  return rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><p>"+(r.text||"")+"</p></div>";}).join("");
 }
+var feed=[]; try{ feed=JSON.parse(localStorage.getItem("ty_feed")||"[]"); }catch(e){}
+document.getElementById("jobs").innerHTML=cards(feed.filter(function(r){return r.type!=="jobseeker";}));
+document.getElementById("cvs").innerHTML=cards(feed.filter(function(r){return r.type==="jobseeker" && r.public==="بله";}));
 </script></body></html>
