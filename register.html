@@ -5,17 +5,20 @@
 <form id="f"><input id="name" placeholder="نام" required><input id="mobile" placeholder="موبایل" inputmode="numeric" required><button>ادامه</button></form></div>
 <script>
 var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
-function norm(s){return (s||"").replace(/[^0-9]/g,"").replace(/^98/,"0");}
-var saved=norm(localStorage.getItem("ty_mobile")||"");
+function norm(s){s=(s||"").replace(/[^0-9]/g,"");if(s.indexOf("98")===0)s="0"+s.slice(2);return s}
+var saved=localStorage.getItem("ty_mobile")||"";
 if(saved) location.replace("index.html");
 document.getElementById("f").onsubmit=function(e){
   e.preventDefault();
   var mobile=norm(document.getElementById("mobile").value);
-  if(mobile && mobile===saved){location.replace("index.html");return;}
+  if(mobile.length<10) return;
+  if(localStorage.getItem("ty_mobile")===mobile){ location.replace("index.html"); return; }
   var p={type:"membership",name:document.getElementById("name").value,mobile:mobile,telegram:"",role:"",field:"",city:"",years:"",source:"اپ",hp:""};
-  fetch(END,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(p)});
+  var body=JSON.stringify(p);
+  try{ if(navigator.sendBeacon) navigator.sendBeacon(END, new Blob([body],{type:"text/plain;charset=utf-8"})); }catch(err){}
+  fetch(END,{method:"POST",mode:"no-cors",keepalive:true,headers:{"Content-Type":"text/plain;charset=utf-8"},body:body});
   localStorage.setItem("ty_mobile", mobile);
-  localStorage.setItem("ty_user", JSON.stringify(p));
-  setTimeout(function(){location.replace("index.html");}, 700);
+  localStorage.setItem("ty_user", body);
+  setTimeout(function(){ location.replace("index.html"); }, 700);
 };
 </script></body></html>
