@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ادمین</title>
+<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0}button,input{border:0;border-radius:10px;padding:10px}button{background:#e0433c;color:#fff}input{width:100%;box-sizing:border-box}</style></head>
+<body><div class="wrap"><h1>مدیریت آگهی‌ها</h1><p>رمز ادمین را بزن. بعد می‌توانی حذف یا ویرایش کنی.</p>
+<input id="pass" placeholder="رمز"><button id="go" style="background:#229ED9;margin-top:8px">ورود</button><div id="box"></div></div>
+<script>
+var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
+var KEY="takhassos1405";
+document.getElementById("go").onclick=function(){
+  if(document.getElementById("pass").value!==KEY){alert("رمز نادرست است");return;}
+  fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
+    var rows=d.items||[];
+    document.getElementById("box").innerHTML=rows.map(function(r){
+      return "<div class=\"card\"><b>"+(r.title||r.type||"")+"</b><p>"+(r.text||"")+"</p><button data-id=\""+r.id+"\">حذف</button></div>";
+    }).join("")||"<p>موردی نیست.</p>";
+    var bs=document.querySelectorAll("button[data-id]");
+    for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
+      var id=this.getAttribute("data-id");
+      fetch(END,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"delete",id:id,key:KEY})});
+      this.parentNode.remove();
+    };
+  }).catch(function(){document.getElementById("box").textContent="خواندن فهرست از سرور هنوز فعال نیست."});
+};
+</script></body></html>

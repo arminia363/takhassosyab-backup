@@ -1,25 +1,26 @@
-﻿<!DOCTYPE html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>آگهی‌های استخدام</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;line-height:1.7;white-space:pre-wrap}button{background:#229ED9;color:#fff;border:0;border-radius:10px;padding:10px 14px}a{color:#8fd0ff}</style></head>
-<body><div class="wrap"><h1>آگهی‌های استخدام</h1><p>هر کدام را خواستی به علاقه‌مندی اضافه کن.</p><div id="box"></div><p><a href="favorites.html">علاقه‌مندی‌ها</a> · <a href="enter.html">بازگشت</a></p></div>
+<!DOCTYPE html>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>آگهی‌های استخدام</title>
+<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;white-space:pre-wrap;line-height:1.7}button{background:#229ED9;color:#fff;border:0;border-radius:10px;padding:8px 12px}a{color:#8fd0ff}</style></head>
+<body><div class="wrap"><h1>آگهی‌های استخدام</h1><p>برای همه باز است.</p><div id="box">در حال خواندن...</div><p><a href="favorites.html">علاقه‌مندی‌ها</a> · <a href="enter.html">منو</a></p></div>
 <script>
-var feed=[]; try{feed=JSON.parse(localStorage.getItem("ty_feed")||"[]");}catch(e){}
-var rows=feed.filter(function(r){return r.type!=="jobseeker";});
+var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
 function favs(){try{return JSON.parse(localStorage.getItem("ty_fav")||"[]");}catch(e){return [];}}
-function draw(){
+function draw(rows){
   var f=favs();
   document.getElementById("box").innerHTML=rows.length?rows.map(function(r,i){
-    var on=f.some(function(x){return x.at===r.at;});
+    var on=f.some(function(x){return x.id===r.id;});
     return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><br>"+(r.text||"")+"<br><button data-i=\""+i+"\">"+(on?"در علاقه‌مندی است":"افزودن به علاقه‌مندی")+"</button></div>";
-  }).join(""):"<p>هنوز آگهی استخدامی نیست.</p>";
+  }).join(""):"<p>هنوز آگهی مشترکی نیست.</p>";
   var bs=document.querySelectorAll("button");
   for(var n=0;n<bs.length;n++) bs[n].onclick=function(){
     var r=rows[this.getAttribute("data-i")];
-    var list=favs().filter(function(x){return x.at!==r.at;});
-    if(!favs().some(function(x){return x.at===r.at;})) list.unshift(r);
+    var list=favs().filter(function(x){return x.id!==r.id;});
+    if(!favs().some(function(x){return x.id===r.id;})) list.unshift(r);
     localStorage.setItem("ty_fav", JSON.stringify(list.slice(0,100)));
-    draw();
+    draw(rows);
   };
 }
-draw();
+fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
+  draw((d.items||[]).filter(function(r){return r.type!=="jobseeker" && r.deleted!=="بله";}));
+}).catch(function(){document.getElementById("box").textContent="فهرست مشترک هنوز از سرور خوانده نمی‌شود."});
 </script></body></html>
