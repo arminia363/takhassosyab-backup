@@ -145,6 +145,7 @@ input[type=tel]{direction:ltr;text-align:right}
 .btn-join{display:flex;width:100%;text-decoration:none;background:linear-gradient(135deg,#2AABEE,#1565a8);color:#fff;font-size:17px;padding:16px 12px;border-radius:14px;white-space:normal;box-shadow:0 3px 12px rgba(34,158,217,.4)}
 .done ol{text-align:right;font-size:13px;color:var(--muted);padding-right:20px;margin:14px 0 0;list-style-type:persian}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 <div class="wrap">
@@ -300,5 +301,6 @@ var JOIN_LINK = "https://t.me/+UqG0KBAd-pQ0YzQ0"; /* Telegram join-request link 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
 </script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");</script>
 </body>
 </html>

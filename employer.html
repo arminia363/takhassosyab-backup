@@ -132,6 +132,7 @@ select{width:100%;border:1.5px solid var(--line);background:var(--card);border-r
 @media (max-width:340px){.wrap{padding:8px 8px 0}.card{padding:12px 10px}.logo{font-size:22px}.chip{padding:4px 10px;font-size:13px}.btn{font-size:13.5px;padding:10px 8px}}
 @media (min-width:700px){.wrap{padding-top:20px}}
 </style>
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 <div class="wrap">
@@ -1372,5 +1373,6 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init); else init();
 })();
 </script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");</script>
 </body>
 </html>
