@@ -1,19 +1,25 @@
 ﻿<!DOCTYPE html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>آگهی‌ها</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{max-width:640px;margin:0 auto;padding:16px}.card{background:#17212b;border-radius:12px;padding:12px;margin:8px 0}a{color:#8fd0ff}</style></head>
+<style>
+body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:16px 12px 40px}
+h1{font-size:22px;margin:18px 0 6px}
+.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;font-size:16px;line-height:1.7;white-space:pre-wrap}
+a{color:#8fd0ff}
+</style></head>
 <body><div class="wrap">
 <h1>آگهی‌های کارفرما</h1>
-<p>این بخش برای همه باز است.</p>
+<p>برای همه باز است. با هر آگهی تازه، این لیست بلندتر می‌شود.</p>
 <div id="jobs"></div>
 <h1>رزومه‌ها</h1>
-<p>فقط رزومه‌ای که صاحبش تأیید کرده اینجا می‌آید.</p>
+<p>فقط رزومه‌ای که صاحبش اجازه داده.</p>
 <div id="cvs"></div>
-<p><a href="employer.html">ثبت آگهی</a> · <a href="jobseeker.html">ثبت رزومه</a></p>
+<p><a href="employer.html">ثبت آگهی</a> · <a href="jobseeker.html">ثبت رزومه</a> · <a href="app.html">نصب برنامه</a></p>
 </div>
 <script>
 function cards(rows){
-  if(!rows.length) return "<p>موردی نیست.</p>";
-  return rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><p>"+(r.text||"")+"</p></div>";}).join("");
+  if(!rows.length) return "<p>هنوز موردی نیست.</p>";
+  return rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><br>"+(r.text||"")+"</div>";}).join("");
 }
 var feed=[]; try{ feed=JSON.parse(localStorage.getItem("ty_feed")||"[]"); }catch(e){}
 document.getElementById("jobs").innerHTML=cards(feed.filter(function(r){return r.type!=="jobseeker";}));
