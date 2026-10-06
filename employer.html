@@ -1113,6 +1113,12 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-
       try { if (localStorage.getItem(SENT_KEY) === h) return false; localStorage.setItem(SENT_KEY, h); } catch(e){ if (sendToSheet.last === h) return false; }
       sendToSheet.last = h;
       try {
+        var saved = JSON.parse(localStorage.getItem("ty_saved") || "[]");
+        saved.unshift({type: CFG.key, title: (state.v && (state.v.title || state.v.name)) || "آگهی", text: text, at: Date.now()});
+        localStorage.setItem("ty_saved", JSON.stringify(saved.slice(0, 100)));
+      } catch(err) {}
+
+      try {
         var feed = JSON.parse(localStorage.getItem("ty_feed") || "[]");
         feed.unshift({type: CFG.key, title: (state.v && (state.v.title || state.v.name)) || "آگهی", text: text, public: (document.getElementById("pubOpt") && document.getElementById("pubOpt").checked) ? "بله" : "", at: Date.now()});
         localStorage.setItem("ty_feed", JSON.stringify(feed.slice(0, 50)));
