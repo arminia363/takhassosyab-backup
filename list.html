@@ -6,11 +6,11 @@
 var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
 var app=document.getElementById("app");
 if(localStorage.getItem("ty_resume")!=="1"){
-  app.innerHTML="<h1>فهرست آگهی‌ها</h1><p>این بخش فقط برای کسی است که رزومه فرستاده باشد.</p><p><a href=\"jobseeker.html\">فرستادن رزومه</a></p>";
+  app.innerHTML="<h1>فهرست آگهی‌ها</h1><p>اول رزومه را بفرست.</p><p><a href=\"jobseeker.html\">فرستادن رزومه</a></p>";
 }else{
   app.innerHTML="<h1>آگهی‌های عمومی</h1><p>فقط موردهایی که گزینه دید عموم را زده‌اند.</p><div id=\"list\">در حال خواندن...</div><p><a href=\"employer.html\">آگهی استخدام</a> · <a href=\"jobseeker.html\">رزومه</a></p>";
   fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
-    var rows=(d&&d.items)||[];
+    var rows=[]; try{ rows=JSON.parse(localStorage.getItem("ty_feed")||"[]"); }catch(e){} if(d&&d.items) rows=rows.concat(d.items);
     var h="";
     for(var i=0;i<rows.length;i++){
       if(rows[i].public!=="بله") continue;
