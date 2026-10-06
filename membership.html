@@ -13,7 +13,7 @@
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--text);font-family:Vazirmatn,"Vazirmatn FD",Vazir,Tahoma,"Noto Sans Arabic","Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.75;-webkit-tap-highlight-color:transparent}
 button,input,textarea,select{font:inherit;color:inherit}
-.wrap{max-width:640px;margin:0 auto;padding:12px 12px 0}
+.wrap{max-width:none;margin:0 auto;padding:12px 12px 0}
 .hero{background:linear-gradient(135deg,#229ED9,#1565a8);color:#fff;border-radius:18px;padding:18px 16px 16px;box-shadow:var(--shadow);margin-bottom:12px}
 .brand{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .logo{font-size:26px;font-weight:800;letter-spacing:-.5px}
@@ -124,7 +124,7 @@ select{width:100%;border:1.5px solid var(--line);background:var(--card);border-r
 .bbtns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.bbtns .btn{flex:1 1 140px}
 .linkbtn{background:none;border:0;color:var(--brand);font-size:12.5px;padding:6px 0 0;cursor:pointer;text-decoration:underline}
 .modal{position:fixed;inset:0;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:30;display:flex;align-items:center;justify-content:center;padding:16px}
-.mbox{background:var(--card);border-radius:16px;padding:12px;max-width:520px;width:100%;text-align:center}
+.mbox{background:var(--card);border-radius:16px;padding:12px;max-width:none;width:100%;text-align:center}
 .mbox img{width:100%;height:auto;border-radius:10px;display:block;-webkit-touch-callout:default}
 .mbox p{font-size:13.5px;margin:10px 0}
 .subin{margin-top:8px}
@@ -146,7 +146,7 @@ input[type=tel]{direction:ltr;text-align:right}
 .done ol{text-align:right;font-size:13px;color:var(--muted);padding-right:20px;margin:14px 0 0;list-style-type:persian}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-</head>
+<style>.wrap{max-width:none!important;width:100%!important;padding:8px!important;box-sizing:border-box}</style></head>
 <body>
 <div class="wrap">
   <header class="hero">
