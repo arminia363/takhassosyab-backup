@@ -3,7 +3,7 @@
 <style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;white-space:pre-wrap;line-height:1.7}a{color:#8fd0ff}</style></head>
 <body><div class="wrap"><h1>رزومه‌های کارجویان</h1><p>فقط رزومه‌ای که صاحبش اجازه داده.</p><div id="box">در حال خواندن...</div><p><a href="enter.html">منو</a></p></div>
 <script>
-var END="https://script.google.com/macros/s/AKfycbw7BQdea5ifmFm1AN-nbxOj9ktW-99QyuH-n9eqqH3JK81oMCRe-gqQYPv5wUqw6x8/exec";
+var END="https://script.google.com/macros/s/AKfycbyFD6Rd_7Yz4Q01v-_g0jMbn0STyd8_QA8qrl7AMVd9oqYTgwqFAK63AAu_zRIJfIGm/exec";
 fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
   var rows=(d.items||[]).filter(function(r){return r.type==="jobseeker" && r.public==="بله" && r.deleted!=="بله";});
   document.getElementById("box").innerHTML=rows.length?rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"رزومه")+"</b><br>"+(r.text||"")+"</div>";}).join(""):"<p>رزومه عمومی هنوز نیست.</p>";
