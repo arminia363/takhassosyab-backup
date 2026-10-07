@@ -1046,7 +1046,7 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyFD6Rd_7Yz4Q01v-_
       drawBanner($("banner"), themeFor(cur), d);
       for (var i = 0; i < th.length; i++){ var k = th[i].getAttribute("data-theme"); drawBanner(th[i], themeFor(k), d); th[i].className = "thumb" + (k === cur ? " on" : ""); }
       bannerBlob = null;
-      if (canShareFiles && $("banner").toBlob) $("banner").toBlob(function(b){ bannerBlob = b; }, "image/png");
+      if (canShareFiles && $("banner").toBlob) $("banner").toBlob(function(b){ bannerBlob = b; }, "image/jpeg", 0.6);
     };
     if (now) run(); else bannerTimer = setTimeout(run, 120);
   }
@@ -1139,13 +1139,16 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyFD6Rd_7Yz4Q01v-_
   var ADMIN_ID = "arminia363";
   function sentText(t){ return t; }
   function shareImg(){
+    if (shareImg.busy) return;
+    shareImg.busy = true;
+    toast("در حال باز کردن تلگرام...");
     var text = sentText(update());
-    if (!validateAll()) return;
+    if (!validateAll()) { shareImg.busy = false; return; }
     sendToSheet(text);
     var go = function(b){
       if (window.Android && Android.shareAd) {
         var reader = new FileReader();
-        reader.onload = function(){ Android.shareAd(text, reader.result); };
+        reader.onload = function(){ Android.shareAd(text, reader.result); shareImg.busy = false; };
         reader.readAsDataURL(b);
         return;
       }
@@ -1154,7 +1157,7 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyFD6Rd_7Yz4Q01v-_
         var file = new File([b], fileName(), {type:"image/png"});
         var data = {files:[file], text:text};
         if (!navigator.canShare(data)) data = {files:[file]};
-        navigator.share(data)["catch"](function(e){ if (!e || e.name !== "AbortError") toast("\u0627\u0634\u062A\u0631\u0627\u06A9 \u0627\u0646\u062C\u0627\u0645 \u0646\u0634\u062F\u061B \u0639\u06A9\u0633 \u0631\u0627 \u062F\u0627\u0646\u0644\u0648\u062F \u06A9\u0646\u06CC\u062F"); });
+        shareImg.busy = false; navigator.share(data)["catch"](function(e){ if (!e || e.name !== "AbortError") toast("\u0627\u0634\u062A\u0631\u0627\u06A9 \u0627\u0646\u062C\u0627\u0645 \u0646\u0634\u062F\u061B \u0639\u06A9\u0633 \u0631\u0627 \u062F\u0627\u0646\u0644\u0648\u062F \u06A9\u0646\u06CC\u062F"); });
       } catch(e){ toast("\u0627\u0634\u062A\u0631\u0627\u06A9 \u0627\u0646\u062C\u0627\u0645 \u0646\u0634\u062F\u061B \u0639\u06A9\u0633 \u0631\u0627 \u062F\u0627\u0646\u0644\u0648\u062F \u06A9\u0646\u06CC\u062F"); }
     };
     if (bannerBlob) go(bannerBlob);
