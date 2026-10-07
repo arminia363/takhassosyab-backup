@@ -13,4 +13,38 @@ a.b{display:block;margin:12px 0;padding:22px 12px;border-radius:14px;color:#fff;
 <p><a class="t" href="https://t.me/JobVacencies">@JobVacencies</a></p>
 <a class="b e" href="jobs.html">آگهی‌های استخدام</a><a class="b m" href="favorites.html">علاقه‌مندی‌ها</a>
 <a class="b j" href="resumes.html">رزومه‌های کارجویان</a>
-</div></body></html>
+</div>
+<div id="vip" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
+  <div style="background:#17212b;border-radius:16px;padding:16px;max-width:420px;width:100%">
+    <b id="vipTitle">آگهی ویژه</b>
+    <p id="vipText"></p>
+    <a id="vipLink" class="b e" href="jobs.html">مشاهده</a>
+    <button id="vipClose" style="margin-top:8px;background:#334;color:#fff;border:0;border-radius:10px;padding:10px;width:100%">بستن</button>
+  </div>
+</div>
+<script>
+(function(){
+  var END="https://script.google.com/macros/s/AKfycby5WKsa2XamHHLmtYdZkf3W7lhoIsOCIuJU97qlMThyGBrxsNMDSTXmEY2MXK8akgZ9/exec?action=list";
+  var role="";
+  try{var u=JSON.parse(localStorage.getItem("ty_user")||"{}"); role=u.role||localStorage.getItem("ty_role")||"";}catch(e){}
+  fetch(END).then(function(r){return r.json()}).then(function(d){
+    var rows=(d.items||[]).filter(function(r){return r.deleted!=="بله" && /vip|ویژه/i.test((r.title||"")+" "+(r.text||""));});
+    var item=null, href="jobs.html", title="آگهی ویژه", text="";
+    if(role.indexOf("کارجو")>=0 || role==="jobseeker"){
+      item=rows.filter(function(r){return r.type!=="jobseeker";})[0];
+      text=item?"کار مناسب تو احتمالاً این است. برو چک کن: "+(item.title||"آگهی ویژه"):"";
+    } else if(role.indexOf("کارفرما")>=0 || role==="employer"){
+      item=rows.filter(function(r){return r.type==="jobseeker" && r.public==="بله";})[0];
+      href="resumes.html"; title="رزومه ویژه";
+      text=item?"یک رزومه ویژه آمده. برو چک کن: "+(item.title||"رزومه"):"";
+    }
+    if(!item) return;
+    document.getElementById("vipTitle").textContent=title;
+    document.getElementById("vipText").textContent=text;
+    document.getElementById("vipLink").href=href;
+    document.getElementById("vip").style.display="flex";
+  }).catch(function(){});
+  document.getElementById("vipClose").onclick=function(){document.getElementById("vip").style.display="none";};
+})();
+</script>
+</body></html>
