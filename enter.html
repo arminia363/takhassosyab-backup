@@ -30,8 +30,9 @@ a.b{display:block;margin:12px 0;padding:22px 12px;border-radius:14px;color:#fff;
   fetch(END).then(function(r){return r.json()}).then(function(d){
     var rows=(d.items||[]).filter(function(r){return r.deleted!=="بله" && /vip|ویژه/i.test((r.title||"")+" "+(r.text||""));});
     var item=null, href="jobs.html", title="آگهی ویژه", text="";
+    var interest=localStorage.getItem("ty_interest")||"";
     if(role.indexOf("کارجو")>=0 || role==="jobseeker"){
-      item=rows.filter(function(r){return r.type!=="jobseeker";})[0];
+      item=rows.filter(function(r){return r.type!=="jobseeker" && (!interest || (r.title+" "+r.text).indexOf(interest)>=0);})[0];
       text=item?"کار مناسب تو احتمالاً این است. برو چک کن: "+(item.title||"آگهی ویژه"):"";
     } else if(role.indexOf("کارفرما")>=0 || role==="employer"){
       item=rows.filter(function(r){return r.type==="jobseeker" && r.public==="بله";})[0];
@@ -42,7 +43,7 @@ a.b{display:block;margin:12px 0;padding:22px 12px;border-radius:14px;color:#fff;
     document.getElementById("vipTitle").textContent=title;
     document.getElementById("vipText").textContent=text;
     document.getElementById("vipLink").href=href;
-    document.getElementById("vip").style.display="flex";
+    document.getElementById("vip").style.display="flex"; if(window.Android&&Android.notifyUser) Android.notifyUser(title,text);
   }).catch(function(){});
   document.getElementById("vipClose").onclick=function(){document.getElementById("vip").style.display="none";};
 })();
