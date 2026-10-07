@@ -44,3 +44,16 @@ function sheet(name) {
 function json(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
+
+
+function saveShared(data) {
+  var ss = SpreadsheetApp.getActive();
+  var sh = ss.getSheetByName("فهرست");
+  if (!sh) {
+    sh = ss.insertSheet("فهرست");
+    sh.appendRow(["id","type","title","text","public","deleted"]);
+  }
+  sh.appendRow([data.id || new Date().getTime(), data.type || "", data.title || "", data.text || "", data.public || "", ""]);
+}
+
+// در doPost، قبل از ذخیره فرم، اگر data.action برابر save بود saveShared(data) را صدا بزن و برگرد.
