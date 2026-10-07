@@ -1,59 +1,68 @@
-var SHEET_ID = "1Ye5rMKG_kn6GxoNOzClDYQPuk7u38USJSg8_sBVMCjE";
-var ADMIN_KEY = "takhassos1405";
+var TZ = 'Asia/Tehran';
+var ADMIN_KEY = 'takhassos1405';
+
 function doGet(e) {
   var action = e && e.parameter && e.parameter.action;
-  if (action === "list") return json({ok:true, items:listItems()});
-  return json({ok:true, service:"takhassosyab"});
+  if (action === 'list') return json_({ok:true, items:listItems()});
+  return json_({ok:true, service:'takhassosyab'});
 }
+
 function doPost(e) {
   var data = {};
   try { data = JSON.parse(e.postData.contents); } catch (err) { data = e.parameter || {}; }
-  if (data.action === "delete") {
-    if (data.key !== ADMIN_KEY) return json({ok:false});
+  if (data.action === 'save') { saveShared(data); return json_({ok:true}); }
+  if (data.action === 'delete') {
+    if (data.key !== ADMIN_KEY) return json_({ok:false});
     markDeleted(data.id);
-    return json({ok:true});
+    return json_({ok:true});
   }
-  saveItem(data);
-  return json({ok:true});
+  saveForm_(data);
+  if (data.type === 'employer' || (data.type === 'jobseeker' && data.public === 'بله')) saveShared(data);
+  return json_({ok:true});
 }
-function listItems() {
-  var sh = sheet("فهرست");
+
+function saveForm_(data) {
+  var tabs = {employer:'کارفرما', jobseeker:'کارجو', membership:'عضویت'};
+  var name = tabs[data.type] || 'کارفرما';
+  var sh = sheet_(name, ['تاریخ','نوع','عنوان','متن','تماس','اجازه']);
+  sh.appendRow([fmt_(), data.type || '', data.title || data.name || '', data.text || '', data.contact || '', data.public || '']);
+}
+
+function saveShared(data) {
+  var sh = sheet_('فهرست', ['id','type','title','text','public','deleted']);
+  sh.appendRow([data.id || new Date().getTime(), data.type || '', data.title || data.name || '', data.text || '', data.public || '', '']);
+}
+
+function markDeleted(id) {
+  var sh = SpreadsheetApp.getActive().getSheetByName('فهرست');
+  if (!sh) return;
   var rows = sh.getDataRange().getValues();
-  var out = [];
-  for (var i = 1; i < rows.length; i++) {
+  for (var i = 1; i < rows.length; i++) if (String(rows[i][0]) === String(id)) sh.getRange(i + 1, 6).setValue('بله');
+}
+
+function listItems() {
+  var sh = SpreadsheetApp.getActive().getSheetByName('فهرست');
+  if (!sh) return [];
+  var rows = sh.getDataRange().getValues(), out = [], i;
+  for (i = 1; i < rows.length; i++) {
     if (!rows[i][0]) continue;
     out.push({id:String(rows[i][0]), type:rows[i][1], title:rows[i][2], text:rows[i][3], public:rows[i][4], deleted:rows[i][5]});
   }
   return out;
 }
-function saveItem(data) {
-  var sh = sheet("فهرست");
-  sh.appendRow([data.id || new Date().getTime(), data.type || "", data.title || "", data.text || "", data.public || "", ""]);
-}
-function markDeleted(id) {
-  var sh = sheet("فهرست");
-  var rows = sh.getDataRange().getValues();
-  for (var i = 1; i < rows.length; i++) if (String(rows[i][0]) === String(id)) sh.getRange(i+1, 6).setValue("بله");
-}
-function sheet(name) {
-  var ss = SpreadsheetApp.openById(SHEET_ID);
+
+function sheet_(name, headers) {
+  var ss = SpreadsheetApp.getActive();
   var sh = ss.getSheetByName(name);
-  if (!sh) { sh = ss.insertSheet(name); sh.appendRow(["id","type","title","text","public","deleted"]); }
+  if (!sh) sh = ss.insertSheet(name);
+  if (!sh.getLastRow()) sh.appendRow(headers);
   return sh;
 }
-function json(obj) {
+
+function fmt_() {
+  return Utilities.formatDate(new Date(), TZ, 'yyyy-MM-dd HH:mm:ss');
+}
+
+function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
-
-
-function saveShared(data) {
-  var ss = SpreadsheetApp.getActive();
-  var sh = ss.getSheetByName("فهرست");
-  if (!sh) {
-    sh = ss.insertSheet("فهرست");
-    sh.appendRow(["id","type","title","text","public","deleted"]);
-  }
-  sh.appendRow([data.id || new Date().getTime(), data.type || "", data.title || "", data.text || "", data.public || "", ""]);
-}
-
-// در doPost، قبل از ذخیره فرم، اگر data.action برابر save بود saveShared(data) را صدا بزن و برگرد.
