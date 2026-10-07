@@ -1,24 +1,56 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ادمین</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0}button,input{border:0;border-radius:10px;padding:10px}button{background:#e0433c;color:#fff}input{width:100%;box-sizing:border-box}</style></head>
-<body><div class="wrap"><h1>مدیریت آگهی‌ها</h1><p>رمز ادمین را بزن. بعد می‌توانی حذف یا ویرایش کنی.</p>
-<input id="pass" placeholder="رمز"><button id="go" style="background:#229ED9;margin-top:8px">ورود</button><div id="box"></div></div>
+<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پنل ادمین</title>
+<style>
+body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}
+.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}
+.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;line-height:1.7}
+.bad{border:1px solid #e0433c}.ok{border:1px solid #12a36b}
+button,input{border:0;border-radius:10px;padding:10px}
+input{width:100%;box-sizing:border-box;margin:8px 0}
+button{background:#229ED9;color:#fff;margin:4px}
+.del{background:#e0433c}
+small{color:#9fb0c0}
+</style></head>
+<body><div class="wrap">
+<h1>پنل هوشمند ادمین</h1>
+<input id="pass" type="password" placeholder="رمز ادمین">
+<button id="go">ورود</button>
+<div id="box"></div>
+</div>
 <script>
 var END="https://script.google.com/macros/s/AKfycbyFD6Rd_7Yz4Q01v-_g0jMbn0STyd8_QA8qrl7AMVd9oqYTgwqFAK63AAu_zRIJfIGm/exec";
 var KEY="takhassos1405";
+function phone(t){var m=String(t||"").match(/09\d{9}/);return m?m[0]:"";}
+function flags(r,all){
+  var f=[];
+  if(!r.title) f.push("عنوان ندارد");
+  if(!r.text || String(r.text).length<20) f.push("متن ناقص است");
+  if(!phone(r.text)) f.push("شماره تماس ندارد");
+  var p=phone(r.text);
+  if(p && all.filter(function(x){return phone(x.text)===p;}).length>1) f.push("شماره تکراری");
+  if(r.type==="jobseeker" && r.public!=="بله") f.push("رزومه اجازه انتشار ندارد");
+  if(r.deleted==="بله") f.push("حذف شده");
+  return f;
+}
+function draw(rows){
+  var live=rows.filter(function(r){return r.deleted!=="بله";});
+  var problems=live.filter(function(r){return flags(r,live).length;});
+  var html="<p>کل: "+rows.length+" · قابل نمایش: "+live.length+" · نیازمند بررسی: "+problems.length+"</p>";
+  if(!rows.length) html+="<p>فهرست مشترک هنوز خالی است. ثبت فرم در شیت هست، ولی به این فهرست نرسیده.</p>";
+  html+=live.map(function(r){
+    var f=flags(r,live);
+    return "<div class=\"card "+(f.length?"bad":"ok")+"\"><b>"+(r.title||r.type||"مورد")+"</b><br><small>"+(r.type==="jobseeker"?"رزومه":"آگهی استخدام")+"</small><p>"+(r.text||"")+"</p><p>"+(f.join(" · ")||"سالم")+"</p><button class=\"del\" data-id=\""+r.id+"\">حذف برای همه</button></div>";
+  }).join("");
+  document.getElementById("box").innerHTML=html;
+  var bs=document.querySelectorAll(".del");
+  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
+    fetch(END,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"delete",id:this.getAttribute("data-id"),key:KEY})});
+    this.parentNode.remove();
+  };
+}
 document.getElementById("go").onclick=function(){
-  if(document.getElementById("pass").value!==KEY){alert("رمز نادرست است");return;}
-  fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
-    var rows=d.items||[];
-    document.getElementById("box").innerHTML=rows.map(function(r){
-      return "<div class=\"card\"><b>"+(r.title||r.type||"")+"</b><p>"+(r.text||"")+"</p><button data-id=\""+r.id+"\">حذف</button></div>";
-    }).join("")||"<p>موردی نیست.</p>";
-    var bs=document.querySelectorAll("button[data-id]");
-    for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
-      var id=this.getAttribute("data-id");
-      fetch(END,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain"},body:JSON.stringify({action:"delete",id:id,key:KEY})});
-      this.parentNode.remove();
-    };
-  }).catch(function(){document.getElementById("box").textContent="خواندن فهرست از سرور هنوز فعال نیست."});
+  if(document.getElementById("pass").value!==KEY){document.getElementById("box").textContent="رمز نادرست است";return;}
+  document.getElementById("box").textContent="در حال بررسی...";
+  fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){draw(d.items||[]);}).catch(function(){document.getElementById("box").textContent="خواندن فهرست ناموفق بود";});
 };
 </script></body></html>
