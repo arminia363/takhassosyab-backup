@@ -21,6 +21,9 @@ function draw(rows){
   };
 }
 fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
-  draw((d.items||[]).filter(function(r){return r.type!=="jobseeker" && r.deleted!=="بله";}));
+  var rows=(d.items||[]).filter(function(r){return r.type!=="jobseeker" && r.deleted!=="بله";});
+  var seen={}, uniq=[];
+  rows.forEach(function(r){var k=(r.title||"")+"|"+(r.text||""); if(seen[k]) return; seen[k]=1; uniq.push(r);});
+  draw(uniq);
 }).catch(function(){document.getElementById("box").textContent="فهرست مشترک هنوز از سرور خوانده نمی‌شود."});
 </script></body></html>

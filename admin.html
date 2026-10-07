@@ -15,7 +15,7 @@ small{color:#9fb0c0}
 <h1>پنل هوشمند ادمین</h1>
 <input id="pass" type="password" placeholder="رمز ادمین">
 <button id="go">ورود</button>
-<div id="box"></div>
+<div id="box"></div><h2>افزودن آگهی تلگرامی</h2><input id="atitle" placeholder="عنوان"><textarea id="atext" placeholder="متن آگهی" style="width:100%;min-height:120px"></textarea><button id="add" style="background:#12a36b">افزودن به برنامه</button>
 </div>
 <script>
 var END="https://script.google.com/macros/s/AKfycby5WKsa2XamHHLmtYdZkf3W7lhoIsOCIuJU97qlMThyGBrxsNMDSTXmEY2MXK8akgZ9/exec";
@@ -48,6 +48,12 @@ function draw(rows){
     this.parentNode.remove();
   };
 }
+document.getElementById("add").onclick=function(){
+  if(document.getElementById("pass").value!==KEY){alert("اول رمز را بزن");return;}
+  var body=JSON.stringify({action:"save", id:String(Date.now()), type:"employer", title:document.getElementById("atitle").value, text:document.getElementById("atext").value, public:"بله"});
+  fetch(END,{method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"}, body:body});
+  alert("به فهرست برنامه اضافه شد");
+};
 document.getElementById("go").onclick=function(){
   if(document.getElementById("pass").value!==KEY){document.getElementById("box").textContent="رمز نادرست است";return;}
   document.getElementById("box").textContent="در حال بررسی...";
