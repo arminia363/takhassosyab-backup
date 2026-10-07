@@ -1113,6 +1113,11 @@ var SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbyFD6Rd_7Yz4Q01v-_
       try { if (localStorage.getItem(SENT_KEY) === h) return false; localStorage.setItem(SENT_KEY, h); } catch(e){ if (sendToSheet.last === h) return false; }
       sendToSheet.last = h;
       try {
+        var listBody = JSON.stringify({action:"save", id:String(Date.now()), type:CFG.key, title:(state.v && (state.v.title || state.v.name)) || "", text:text, public:(document.getElementById("pubOpt") && document.getElementById("pubOpt").checked) ? "بله" : (CFG.resume ? "" : "بله")});
+        if (window.fetch) window.fetch(SHEET_ENDPOINT, {method:"POST", mode:"no-cors", keepalive:true, headers:{"Content-Type":"text/plain;charset=utf-8"}, body:listBody});
+      } catch(err) {}
+
+      try {
         var saved = JSON.parse(localStorage.getItem("ty_saved") || "[]");
         saved.unshift({type: CFG.key, title: (state.v && (state.v.title || state.v.name)) || "آگهی", text: text, at: Date.now()});
         localStorage.setItem("ty_saved", JSON.stringify(saved.slice(0, 100)));
