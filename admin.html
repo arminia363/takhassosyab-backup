@@ -15,7 +15,7 @@ small{color:#9fb0c0}
 <h1>پنل هوشمند ادمین</h1>
 <input id="pass" type="password" placeholder="رمز ادمین">
 <button id="go">ورود</button>
-<div id="box"></div><h2>تأیید عضویت</h2><div id="members"></div><h2>افزودن آگهی تلگرامی</h2><input id="atitle" placeholder="عنوان"><textarea id="atext" placeholder="متن آگهی" style="width:100%;min-height:120px"></textarea><button id="add" style="background:#12a36b">افزودن به برنامه</button>
+<h2>عضویت</h2><p>درخواست‌ها و اعضای تأییدشده همین‌جا هستند.</p><div id="members"></div><div id="box"></div><h2>افزودن آگهی تلگرامی</h2><input id="atitle" placeholder="عنوان"><textarea id="atext" placeholder="متن آگهی" style="width:100%;min-height:120px"></textarea><button id="add" style="background:#12a36b">افزودن به برنامه</button>
 </div>
 <script>
 var END="https://script.google.com/macros/s/AKfycby5WKsa2XamHHLmtYdZkf3W7lhoIsOCIuJU97qlMThyGBrxsNMDSTXmEY2MXK8akgZ9/exec";
@@ -57,7 +57,8 @@ document.getElementById("add").onclick=function(){
 function loadMembers(){
   fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
     var rows=(d.items||[]).filter(function(r){return r.type==="membership" && r.public!=="تأیید" && r.deleted!=="بله";});
-    document.getElementById("members").innerHTML=rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||r.id)+"</b><p>"+(r.text||"")+"</p><button data-m=\""+r.id+"\" style=\"background:#12a36b\">تأیید عضویت</button></div>";}).join("")||"<p>درخواست جدیدی نیست.</p>";
+    var approved=(d.items||[]).filter(function(r){return r.type==="membership" && r.public==="تأیید" && r.deleted!=="بله";});
+    document.getElementById("members").innerHTML="<h3>در انتظار</h3>"+(rows.map(function(r){return "<div class=\"card bad\"><b>"+(r.title||r.id)+"</b><p>"+(r.text||"")+"</p><button data-m=\""+r.id+"\" style=\"background:#12a36b\">تأیید عضویت</button></div>";}).join("")||"<p>درخواست جدیدی نیست.</p>")+"<h3>تأییدشده</h3>"+(approved.map(function(r){return "<div class=\"card ok\"><b>"+(r.title||r.id)+"</b><p>عضو تأییدشده</p></div>";}).join("")||"<p>عضو تأییدشده‌ای نیست.</p>");
     var bs=document.querySelectorAll("[data-m]");
     for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
       fetch(END,{method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"}, body:JSON.stringify({action:"save", id:this.getAttribute("data-m"), type:"membership", title:"تأیید", text:this.getAttribute("data-m"), public:"تأیید"})});
