@@ -10,10 +10,10 @@
 <script>
 var END="https://script.google.com/macros/s/AKfycby-KF2DQ45TzhqLISN5Xcy0_VOd9-UV63HEh6-6GwlLq7bqxPcSibSgB2ddIdsbBFAU/exec";
 function norm(s){s=(s||"").replace(/[^0-9]/g,"");if(s.indexOf("98")===0)s="0"+s.slice(2);return s}
-function approved(mobile, items){return (items||[]).some(function(r){return String(r.id)===mobile && r.public==="تأیید" && r.deleted!=="بله";});}
+function approved(mobile, items){var m=String(mobile).replace(/^0/,""); return (items||[]).some(function(r){var id=String(r.id||""); return r.public==="تأیید" && r.deleted!=="بله" && (id===mobile || id===m || String(r.text||"").indexOf(mobile)>=0 || String(r.text||"").indexOf(m)>=0);});}
 function wait(mobile){
   document.getElementById("f").style.display="none";
-  document.getElementById("msg").textContent="درخواست برای ادمین ارسال شد. منتظر تأیید بمان.";
+  document.getElementById("msg").textContent="درخواست ارسال شد. تا تأیید، لینک گروه اینجاست."; document.getElementById("tg").style.display="block";
   fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
     if(approved(mobile,d.items)){
       localStorage.setItem("ty_ok","1");
@@ -25,7 +25,7 @@ function wait(mobile){
 }
 var saved=localStorage.getItem("ty_mobile")||"";
 if(saved && localStorage.getItem("ty_ok")==="1"){ location.replace("enter.html"); }
-else if(saved) wait(saved);
+else if(saved){ wait(saved); setInterval(function(){ wait(saved); }, 8000); }
 document.getElementById("f").onsubmit=function(e){
   e.preventDefault();
   var mobile=norm(document.getElementById("mobile").value);
