@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>حساب من | تخصص‌یاب</title>
+<meta name="description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies">
+<meta name="theme-color" content="#F5F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="حساب من | تخصص‌یاب"><meta property="og:description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies"><meta property="og:image" content="https://takhassosyab.ir/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script>
+</head>
+<body>
+<main></main>
+<script>document.addEventListener('DOMContentLoaded',function(){var TY=window.TY,$=TY.$;
+
+TY.shell({title:'حساب من', nav:'me'});
+var main=$('main');
+if(!TY.session()){main.innerHTML=TY.empty('user','وارد نشده‌ای','برای ثبت آگهی و رزومه و گرفتن اعلان‌های مرتبط، عضو شو.','<div class="stack" style="max-width:300px;margin:0 auto"><a class="btn primary block lg" href="register.html">ثبت‌نام</a><a class="btn outline block" href="register.html?login=1">ورود</a></div>')+
+  '<div class="list mt4"><a class="row" href="favorites.html"><span class="tile-ic">'+TY.ic('bookmark','sm')+'</span><div class="grow"><div class="t">ذخیره‌شده‌ها</div></div>'+TY.ic('fwd','sm chev')+'</a><a class="row" href="app.html"><span class="tile-ic">'+TY.ic('download','sm')+'</span><div class="grow"><div class="t">نصب برنامه</div></div>'+TY.ic('fwd','sm chev')+'</a></div>';return;}
+var D=window.TY_DATA;
+function draw(me){
+  var u=me.user, st={approved:['brand','عضو تأییدشده'],pending:['warn','در انتظار تأیید'],rejected:['danger','رد شده'],blocked:['danger','مسدود']}[u.status]||['',u.status];
+  var theme=TY.store.get('theme',null);
+  var ints=String(u.interests||'').split(' ').filter(Boolean);
+  var push=window.Android?'فعال در برنامه':('Notification' in window?(Notification.permission==='granted'?'فعال':'غیرفعال'):'پشتیبانی نمی‌شود');
+  main.innerHTML='<div class="card mt2"><div class="hstack" style="gap:14px"><span class="avatar lg brand">'+TY.esc(TY.initial(u.name))+'</span><div class="grow" style="min-width:0"><div class="h3">'+TY.esc(u.name||'')+'</div><div class="small muted num" dir="ltr" style="text-align:right">'+TY.fa(u.mobile)+'</div><div class="hstack mt1" style="gap:6px"><span class="badge">'+(u.role==='employer'?'کارفرما':'کارجو')+'</span><span class="badge dotted '+st[0]+'">'+st[1]+'</span></div></div></div></div>'+
+   '<div class="section-h" id="mine"><h2>ارسال‌های من</h2><a href="post.html">'+TY.ic('plus','xs')+'جدید</a></div>'+
+   ((me.mine||[]).length?'<div class="list">'+me.mine.map(function(m,i){return '<button class="row" data-m="'+i+'"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+'</div></div>'+TY.statusBadge(m.status)+'</button>';}).join('')+'</div>'
+     :'<div class="card flat small muted">هنوز آگهی یا رزومه‌ای نفرستاده‌ای.</div>')+
+   '<div class="section-h"><h2>اعلان‌ها و تطبیق</h2></div><div class="list">'+
+   '<a class="row" '+(u.tg?'':'target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'"')+'><span class="tile-ic '+(u.tg?'brand':'')+'">'+TY.ic('send','sm')+'</span><div class="grow"><div class="t">تلگرام</div><div class="s">'+(u.tg?'وصل است'+(u.tg_user?' · @'+TY.esc(u.tg_user):'')+(u.verified?' · شماره تأییدشده':''):'وصل نیست — برای اعلان فوری بزن')+'</div></div>'+(u.tg?TY.ic('check','sm'):TY.ic('external','sm chev'))+'</a>'+
+   '<button class="row" id="pushRow"><span class="tile-ic">'+TY.ic('bell','sm')+'</span><div class="grow"><div class="t">اعلان مرورگر / برنامه</div><div class="s">'+push+'</div></div>'+TY.ic('fwd','sm chev')+'</button>'+
+   '<button class="row" id="intRow"><span class="tile-ic">'+TY.ic('star','sm')+'</span><div class="grow"><div class="t">حوزه‌های مورد علاقه</div><div class="s">'+(ints.length?TY.esc(ints.map(TY.catName).join('، ')):'انتخاب نشده — برای اعلان آگهی/رزومه‌ی مرتبط')+'</div></div>'+TY.ic('fwd','sm chev')+'</button>'+
+   '<button class="row" id="cityRow"><span class="tile-ic">'+TY.ic('pin','sm')+'</span><div class="grow"><div class="t">شهر</div><div class="s">'+TY.esc(u.city||'همه‌ی شهرها')+'</div></div>'+TY.ic('fwd','sm chev')+'</button></div>'+
+   '<div class="section-h"><h2>برنامه</h2></div><div class="list">'+
+   '<a class="row" href="favorites.html"><span class="tile-ic">'+TY.ic('bookmark','sm')+'</span><div class="grow"><div class="t">ذخیره‌شده‌ها</div><div class="s num">'+TY.fa(TY.saved.all().length)+' مورد</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<button class="row" id="themeRow"><span class="tile-ic">'+TY.ic('moon','sm')+'</span><div class="grow"><div class="t">ظاهر</div><div class="s">'+({light:'روشن',dark:'تیره'}[theme]||'هماهنگ با گوشی')+'</div></div>'+TY.ic('fwd','sm chev')+'</button>'+
+   '<a class="row hide-in-app" href="app.html"><span class="tile-ic">'+TY.ic('download','sm')+'</span><div class="grow"><div class="t">نصب برنامه‌ی اندروید</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   (u.status==='approved'&&u.invite?'<a class="row" target="_blank" rel="noopener" href="'+TY.esc(u.invite)+'"><span class="tile-ic">'+TY.ic('megaphone','sm')+'</span><div class="grow"><div class="t">لینک ورود به کانال</div></div>'+TY.ic('external','sm chev')+'</a>':'')+
+   '<a class="row" target="_blank" rel="noopener" href="https://t.me/'+TY.SUPPORT+'"><span class="tile-ic">'+TY.ic('users','sm')+'</span><div class="grow"><div class="t">پشتیبانی</div><div class="s" dir="ltr" style="text-align:right">@'+TY.SUPPORT+'</div></div>'+TY.ic('external','sm chev')+'</a>'+
+   '<button class="row" id="outRow" style="color:var(--danger)"><span class="tile-ic danger">'+TY.ic('logout','sm')+'</span><div class="grow"><div class="t">خروج از حساب</div></div></button></div>'+
+   '<p class="xs faint center mt6">تخصص‌یاب · نسخه‌ی ۲</p>';
+  if(location.hash==='#mine'){var mm=$('#mine');if(mm)setTimeout(function(){mm.scrollIntoView({block:'start'});window.scrollBy(0,-64);},50);}
+  main.onclick=function(e){
+    var m=e.target.closest('[data-m]'); if(m){openMine(me.mine[+m.getAttribute('data-m')]);return;}
+    var id=(e.target.closest('button')||{}).id;
+    if(id==='pushRow') TY.enablePush().then(function(){draw(me);});
+    if(id==='intRow') pickInts(u,me);
+    if(id==='cityRow') pickCity(u,me);
+    if(id==='themeRow') pickTheme(me);
+    if(id==='outRow') TY.confirm('خروج از حساب','برای ورود دوباره، کد از تلگرام برایت می‌آید.','خروج',true).then(function(y){if(y)TY.logout();});
+  };
+}
+function save(patch,me){return TY.api('profile',patch).then(function(r){if(r&&r.ok){me.user=r.user;TY.store.set('me',me);draw(me);TY.toast('ذخیره شد');}else TY.toast(TY.errText(r),'err');}).catch(function(){TY.toast(TY.errText(),'err');});}
+function pickInts(u,me){var cur=String(u.interests||'').split(' ').filter(Boolean);
+  var s=TY.sheet({title:'حوزه‌های مورد علاقه',body:'<p class="small muted" style="margin-top:0">وقتی '+(u.role==='employer'?'رزومه':'آگهی')+'‌ای در این حوزه‌ها منتشر شود، خبرت می‌کنیم.</p><div class="chips">'+D.depts.map(function(d){return '<button class="chip brand" data-t="'+d.tag+'" aria-pressed="'+(cur.indexOf(d.tag)>=0)+'">'+TY.esc(d.name)+'</button>';}).join('')+'</div>',footer:'<button class="btn primary" id="sv">ذخیره</button>'});
+  s.body.onclick=function(e){var b=e.target.closest('[data-t]');if(b)b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');};
+  s.el.querySelector('#sv').onclick=function(){var v=TY.$$('[data-t][aria-pressed=true]',s.body).map(function(b){return b.getAttribute('data-t');}).join(' ');s.close();save({interests:v},me);};}
+function pickCity(u,me){var cs=['','تهران','مشهد','اصفهان','شیراز','تبریز','کرج','دورکاری'];
+  var s=TY.sheet({title:'شهر',body:'<div class="list">'+cs.map(function(c){return '<button class="row" data-c="'+c+'"><div class="grow"><div class="t">'+(c||'همه‌ی شهرها')+'</div></div>'+((u.city||'')===c?TY.ic('check','sm'):'')+'</button>';}).join('')+'</div>'});
+  s.body.onclick=function(e){var b=e.target.closest('[data-c]');if(!b)return;s.close();save({city:b.getAttribute('data-c')},me);};}
+function pickTheme(me){var cur=TY.store.get('theme',null)||'';
+  var s=TY.sheet({title:'ظاهر',body:'<div class="list">'+[['','هماهنگ با گوشی'],['light','روشن'],['dark','تیره']].map(function(o){return '<button class="row" data-th="'+o[0]+'"><div class="grow"><div class="t">'+o[1]+'</div></div>'+(cur===o[0]?TY.ic('check','sm'):'')+'</button>';}).join('')+'</div>'});
+  s.body.onclick=function(e){var b=e.target.closest('[data-th]');if(!b)return;var v=b.getAttribute('data-th');if(v){TY.store.set('theme',v);document.documentElement.setAttribute('data-theme',v);}else{TY.store.del('theme');document.documentElement.removeAttribute('data-theme');}s.close();draw(me);};}
+function openMine(m){
+  var foot=document.createElement('div');foot.style.display='contents';
+  foot.innerHTML=(m.status==='approved'&&m.msg?'':'')+'<button class="btn danger" id="del">'+TY.ic('trash','sm')+'حذف</button><button class="btn outline" id="cp">'+TY.ic('copy','sm')+'کپی متن</button>';
+  var s=TY.sheet({title:m.title||'بدون عنوان',body:'<div class="hstack" style="margin-bottom:12px">'+TY.statusBadge(m.status)+'<span class="xs muted">'+TY.ago(m.created)+'</span></div><div class="posttext">'+TY.richText(m.text)+'</div>',footer:foot});
+  foot.querySelector('#cp').onclick=function(){TY.copy(m.text);};
+  foot.querySelector('#del').onclick=function(){TY.confirm('حذف شود؟',m.status==='approved'?'از برنامه و کانال هم پاک می‌شود.':'این مورد پاک می‌شود.','حذف',true).then(function(y){if(!y)return;
+    TY.api('my_delete',{id:m.id}).then(function(r){if(r&&r.ok){s.close();TY.toast('حذف شد');TY.me().then(function(x){if(x)draw(x);});}else TY.toast(TY.errText(r),'err');});});};
+}
+var c=TY.cachedMe(); if(c&&c.user) draw(c); else main.innerHTML=TY.skeleton(3);
+TY.me().then(function(r){if(r)draw(r);});
+
+});</script>
+</body>
+</html>

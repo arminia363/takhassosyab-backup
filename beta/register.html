@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ثبت‌نام و ورود | تخصص‌یاب</title>
+<meta name="description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies">
+<meta name="theme-color" content="#F5F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="ثبت‌نام و ورود | تخصص‌یاب"><meta property="og:description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies"><meta property="og:image" content="https://takhassosyab.ir/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script>
+</head>
+<body>
+<main class="nonav"></main>
+<script>document.addEventListener('DOMContentLoaded',function(){var TY=window.TY,$=TY.$;
+
+TY.shell({title:'', back:true, backTo:'enter.html', bell:false});
+var main=$('main'), mode=TY.qs('login')?'login':'signup', role='jobseeker';
+var oldMobile=localStorage.getItem('ty_mobile')||''; try{var ou=JSON.parse(localStorage.getItem('ty_user')||'{}');}catch(e){ou={};}
+if(TY.session()&&TY.user()&&!TY.qs('force')){location.replace('enter.html');return;}
+function shell(inner){return '<div style="max-width:440px;margin:0 auto;padding-top:8px"><span class="mark lg">'+TY.ic('mark')+'</span>'+inner+'</div>';}
+function draw(){
+  var m=TY.qs('m');
+  main.innerHTML=shell('<h1 class="h2 mt4">'+(mode==='signup'?'به تخصص‌یاب خوش آمدی':'ورود به حساب')+'</h1><p class="muted mt1 small">'+(mode==='signup'?'عضویت رایگان است. بعد از تأیید ادمین، به همه‌ی آگهی‌ها و رزومه‌ها دسترسی داری.':'شماره موبایلی که با آن عضو شدی را بنویس.')+'</p>'+
+   (m?'<div class="banner warn mt3">'+TY.ic('lock','sm')+'<div class="grow">'+TY.esc(m)+'</div></div>':'')+
+   '<div class="seg mt4" role="tablist"><button role="tab" data-mode="signup" aria-selected="'+(mode==='signup')+'">ثبت‌نام</button><button role="tab" data-mode="login" aria-selected="'+(mode==='login')+'">ورود</button></div>'+
+   '<form id="f" class="mt4" novalidate>'+(mode==='signup'?
+     '<div class="field"><span class="label">من…</span><div role="radiogroup">'+
+     '<button type="button" class="choice" role="radio" data-role="jobseeker" aria-checked="'+(role==='jobseeker')+'"><span class="radio"></span><span><div class="t">دنبال کار هستم</div><div class="s">رزومه می‌سازم و آگهی‌های مرتبط را می‌گیرم</div></span></button>'+
+     '<button type="button" class="choice" role="radio" data-role="employer" aria-checked="'+(role==='employer')+'"><span class="radio"></span><span><div class="t">نیرو استخدام می‌کنم</div><div class="s">آگهی می‌دهم و رزومه‌های مرتبط را می‌گیرم</div></span></button></div></div>'+
+     '<div class="field" id="w_name"><label for="name">نام و نام خانوادگی</label><input class="input" id="name" autocomplete="name" value="'+TY.esc(ou.name||'')+'" enterkeyhint="next"><div class="errmsg" hidden></div></div>':'')+
+   '<div class="field" id="w_mobile"><label for="mobile">شماره موبایل</label><input class="input ltr num" id="mobile" inputmode="numeric" autocomplete="tel" placeholder="09xx xxx xxxx" value="'+TY.esc(oldMobile)+'" enterkeyhint="go"><div class="errmsg" hidden></div></div>'+
+   '<button class="btn primary block lg mt2" id="go">'+(mode==='signup'?'ثبت‌نام':'ادامه')+'</button></form>'+
+   '<p class="xs faint center mt4">با ثبت‌نام، اطلاعاتت فقط برای ارتباط شغلی و نزد ادمین‌های تخصص‌یاب می‌ماند.</p>');
+}
+function fieldErr(k,msg){var w=$('#w_'+k);if(!w)return;w.classList.toggle('err',!!msg);var e=w.querySelector('.errmsg');e.hidden=!msg;e.textContent=msg||'';}
+main.addEventListener('click',function(e){
+  var t=e.target.closest('[data-mode]'); if(t){mode=t.getAttribute('data-mode');draw();return;}
+  var r=e.target.closest('[data-role]'); if(r){role=r.getAttribute('data-role');TY.$$('[data-role]').forEach(function(x){x.setAttribute('aria-checked',x===r);});}
+});
+main.addEventListener('submit',function(e){
+  e.preventDefault(); var b=$('#go'), mobile=TY.mobile($('#mobile').value), name=$('#name')?$('#name').value.trim():'';
+  fieldErr('mobile',mobile?'':'شماره موبایل ۱۱ رقمی را درست بنویس'); if(mode==='signup') fieldErr('name',name.length>=3?'':'نام کامل را بنویس');
+  if(!mobile||(mode==='signup'&&name.length<3)) return;
+  TY.needV2().then(function(ok){ if(!ok) return; b.classList.add('loading');
+    if(mode==='signup') TY.api('register',{name:name,mobile:mobile,role:role}).then(function(r){ b.classList.remove('loading');
+      if(r&&r.ok){TY.setSession(r.token,r.user);localStorage.setItem('ty_mobile',mobile);connect(r.user);return;}
+      if(r&&r.error==='exists'){mode='login';oldMobile=mobile;draw();TY.toast('این شماره قبلاً عضو شده؛ وارد شو');return;}
+      TY.toast(TY.errText(r),'err');
+    }).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');});
+    else login(mobile,b);
+  });
+});
+function connect(u){
+  main.innerHTML=shell('<h1 class="h2 mt4">یک قدم مانده: تلگرام</h1><p class="muted mt2">ربات تخصص‌یاب را باز کن و <b>Start</b> را بزن. لینک ورود به کانال، خبر تأیید عضویت و آگهی‌ها یا رزومه‌های مرتبط را همان لحظه در تلگرام می‌گیری.</p>'+
+    '<div class="card mt4"><ol class="timeline"><li class="done"><span class="st">'+TY.ic('check','xs')+'</span><div><div class="tt">درخواست عضویت ثبت شد</div><div class="ts">برای ادمین‌ها فرستاده شد</div></div></li>'+
+    '<li class="now" id="tgStep"><span class="st">۲</span><div class="grow"><div class="tt">اتصال تلگرام</div><div class="ts" id="tgState">هنوز وصل نشده</div></div></li></ol></div>'+
+    '<a class="btn primary block lg mt4" target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'" id="tgGo">'+TY.ic('send','sm')+'باز کردن ربات در تلگرام</a>'+
+    '<a class="btn ghost block mt2" href="enter.html">بعداً</a>');
+  var n=0, iv=setInterval(function(){ if(++n>100){clearInterval(iv);return;} TY.me().then(function(r){ if(r&&r.user&&r.user.tg){clearInterval(iv);$('#tgStep').className='done';$('#tgStep .st').innerHTML=TY.ic('check','xs');$('#tgState').textContent='وصل شد';TY.toast('تلگرام وصل شد');setTimeout(function(){TY.afterLogin();},1200);} }); },4000);
+}
+function login(mobile,b){
+  TY.api('login_start',{mobile:mobile}).then(function(r){ b.classList.remove('loading');
+    if(!r||!r.ok){ if(r&&r.error==='nouser'){mode='signup';oldMobile=mobile;draw();TY.toast('با این شماره عضوی نیست؛ ثبت‌نام کن');return;} TY.toast(TY.errText(r),'err');return; }
+    if(r.via==='code') otp(mobile); else viaTg(mobile,r);
+  }).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');});
+}
+function otp(mobile){
+  main.innerHTML=shell('<h1 class="h2 mt4">کد ورود</h1><p class="muted mt2">کد ۵ رقمی را ربات تخصص‌یاب در تلگرام برایت فرستاد.</p><div class="otp mt6" id="otp">'+[0,1,2,3,4].map(function(i){return '<input inputmode="numeric" maxlength="1" aria-label="رقم '+(i+1)+'"'+(i===0?' autocomplete="one-time-code"':'')+'>';}).join('')+'</div>'+
+   '<button class="btn primary block lg mt6" id="vgo">ورود</button><button class="btn ghost block mt2" id="again">ارسال دوباره</button>');
+  var ins=TY.$$('#otp input'); ins[0].focus();
+  ins.forEach(function(inp,i){ inp.addEventListener('input',function(){ var v=TY.en(inp.value).replace(/\D/g,''); if(v.length>1){v.split('').slice(0,5).forEach(function(c,j){if(ins[j])ins[j].value=c;});ins[Math.min(v.length,4)].focus();} else {inp.value=v; if(v&&ins[i+1]) ins[i+1].focus();} if(ins.every(function(x){return x.value;})) $('#vgo').click(); });
+    inp.addEventListener('keydown',function(e){ if(e.key==='Backspace'&&!inp.value&&ins[i-1]) ins[i-1].focus(); }); });
+  $('#again').onclick=function(){var b=this;b.classList.add('loading');login(mobile,b);};
+  $('#vgo').onclick=function(){ var b=this, code=ins.map(function(x){return x.value;}).join(''); if(code.length<5) return; b.classList.add('loading');
+    TY.api('login_verify',{mobile:mobile,code:code}).then(function(r){ b.classList.remove('loading'); if(r&&r.ok){TY.setSession(r.token,r.user);TY.toast('خوش آمدی');TY.afterLogin();} else {TY.toast(TY.errText(r),'err');ins.forEach(function(x){x.value='';});ins[0].focus();} })
+    .catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');}); };
+}
+function viaTg(mobile,r){
+  main.innerHTML=shell('<h1 class="h2 mt4">ورود با تلگرام</h1><p class="muted mt2">ربات را باز کن، <b>Start</b> و بعد دکمه‌ی <b>«ارسال شماره و ورود»</b> را بزن. شماره‌ی تلگرامت باید همین <span class="num" dir="ltr">'+TY.fa(mobile)+'</span> باشد.</p>'+
+   '<a class="btn primary block lg mt6" target="_blank" rel="noopener" href="'+TY.esc(r.link)+'">'+TY.ic('send','sm')+'باز کردن ربات</a><p class="small muted center mt4 hstack" style="justify-content:center"><span class="pulse"></span>منتظر تأیید از تلگرام…</p>');
+  var n=0, iv=setInterval(function(){ if(++n>90){clearInterval(iv);TY.toast(TY.errText({error:'expired'}),'err');return;}
+    TY.api('login_poll',{nonce:r.nonce}).then(function(p){ if(p&&p.ok&&p.token){clearInterval(iv);TY.setSession(p.token,p.user);TY.toast('خوش آمدی');TY.afterLogin();} else if(p&&p.error==='expired'){clearInterval(iv);TY.toast(TY.errText(p),'err');} }); },3500);
+}
+draw();
+
+});</script>
+</body>
+</html>
