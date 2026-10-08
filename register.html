@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ثبت‌نام تخصص‌یاب</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{max-width:460px;margin:0 auto;padding:28px 16px}input,button,a.b{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:14px;margin-top:10px;display:block;text-align:center;text-decoration:none}button,a.b{background:#229ED9;color:#fff;font-weight:700}</style></head>
-<body><div class="wrap"><h1>ثبت‌نام</h1><p id="msg">نام و موبایل را بنویس. بعد از تأیید ادمین وارد برنامه و گروه تلگرام می‌شوی.</p>
+<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:28px 16px}h1,p{text-align:center}input,button,a.b{width:100%;box-sizing:border-box;border:0;border-radius:12px;padding:14px;margin-top:10px;display:block;text-align:center;text-decoration:none}button,a.b{background:#229ED9;color:#fff;font-weight:700}.m{background:#7b4dd6}</style></head>
+<body><div class="wrap"><h1>ثبت‌نام</h1><p id="msg">نام و موبایل را بنویس. بعد از تأیید ادمین وارد برنامه می‌شوی.</p>
 <form id="f"><input id="name" placeholder="نام" required><input id="mobile" placeholder="موبایل" inputmode="numeric" required><button>ارسال برای تأیید</button></form>
-<a id="go" class="b" style="display:none" href="index.html">ورود به برنامه</a>
+<a id="go" class="b" style="display:none" href="enter.html">ورود به برنامه</a>
 <a id="tg" class="b" style="display:none;background:#12a36b" href="https://t.me/+UqG0KBAd-pQ0YzQ0">ورود به گروه تلگرام</a>
+<a class="b m" href="admin.html">آیکون ادمین</a>
 </div>
 <script>
 var END="https://script.google.com/macros/s/AKfycby-KF2DQ45TzhqLISN5Xcy0_VOd9-UV63HEh6-6GwlLq7bqxPcSibSgB2ddIdsbBFAU/exec";
@@ -12,25 +13,25 @@ function norm(s){s=(s||"").replace(/[^0-9]/g,"");if(s.indexOf("98")===0)s="0"+s.
 function approved(mobile, items){return (items||[]).some(function(r){return String(r.id)===mobile && r.public==="تأیید" && r.deleted!=="بله";});}
 function wait(mobile){
   document.getElementById("f").style.display="none";
-  document.getElementById("msg").textContent="درخواست تأیید برای ادمین ارسال شد. منتظر بمان.";
+  document.getElementById("msg").textContent="درخواست برای ادمین ارسال شد. منتظر تأیید بمان.";
   fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
     if(approved(mobile,d.items)){
       localStorage.setItem("ty_ok","1");
-      document.getElementById("msg").textContent="تأیید شدی. حالا وارد برنامه شو و گروه را باز کن.";
+      document.getElementById("msg").textContent="تأیید شدی. وارد برنامه شو.";
       document.getElementById("go").style.display="block";
       document.getElementById("tg").style.display="block";
     }
   }).catch(function(){});
 }
 var saved=localStorage.getItem("ty_mobile")||"";
-if(saved) wait(saved);
+if(saved && localStorage.getItem("ty_ok")==="1"){ location.replace("enter.html"); }
+else if(saved) wait(saved);
 document.getElementById("f").onsubmit=function(e){
   e.preventDefault();
   var mobile=norm(document.getElementById("mobile").value);
   var name=document.getElementById("name").value;
   if(mobile.length<10) return;
-  var body=JSON.stringify({action:"save", id:mobile, type:"membership", title:name, text:name+" "+mobile, public:"در انتظار"});
-  fetch(END,{method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"}, body:body});
+  fetch(END,{method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain"}, body:JSON.stringify({action:"save", id:mobile, type:"membership", title:name, text:name+" "+mobile, public:"در انتظار"})});
   localStorage.setItem("ty_mobile", mobile);
   localStorage.setItem("ty_user", JSON.stringify({name:name, mobile:mobile}));
   wait(mobile);
