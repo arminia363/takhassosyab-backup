@@ -3,7 +3,7 @@
   'use strict';
   var TY = window.TY, esc = TY.esc;
   TY.adminPage = function () {
-    var KEY = TY.store.get('akey', ''), data = null, tab = 'signup', q = '', mfilter = 'all', timer;
+    var KEY = TY.store.get('akey', ''), viaToken = false, data = null, tab = 'signup', q = '', mfilter = 'all', timer;
     var top = TY.shell({title: 'پنل ادمین', bell: false,
       actions: '<button class="iconbtn" id="aRef" aria-label="به‌روزرسانی" hidden>' + TY.ic('refresh') + '</button><button class="iconbtn" id="aMore" aria-label="بیشتر" hidden>' + TY.ic('more') + '</button>'});
     var main = TY.$('main');
@@ -15,7 +15,8 @@
       main.innerHTML = '<div style="max-width:380px;margin:40px auto 0"><span class="tile-ic brand" style="width:52px;height:52px;border-radius:16px">' + TY.ic('shield') + '</span>' +
         '<h1 class="h2 mt4">ورود ادمین</h1><p class="muted small mt1">رمز را یک بار وارد کن؛ روی همین دستگاه می‌ماند.</p>' +
         '<form id="lf" class="mt4"><div class="field' + (err ? ' err' : '') + '"><label for="k">رمز ادمین</label><input class="input ltr" id="k" type="password" autocomplete="current-password" enterkeyhint="go">' + (err ? '<div class="errmsg">' + esc(err) + '</div>' : '') + '</div>' +
-        '<button class="btn primary block lg" id="lb">ورود</button></form></div>';
+        '<button class="btn primary block lg" id="lb">ورود</button></form>' +
+        '<p class="xs muted center mt4">ادمین هستی؟ با حساب خودت در برنامه وارد شو؛ دیگر رمز لازم نیست.<br><a href="register.html?login=1" style="color:var(--brand-text);font-weight:700">ورود به حساب</a></p></div>';
       TY.$('#k').focus();
       TY.$('#lf').onsubmit = function (e) { e.preventDefault(); KEY = TY.$('#k').value.trim(); if (!KEY) return; TY.$('#lb').classList.add('loading'); load(true); };
     }
@@ -23,8 +24,8 @@
       return TY.backend().then(function (v) {
         if (v < 2) { main.innerHTML = TY.empty('alert', 'سرور هنوز نسخه‌ی قدیمی است', 'برای این پنل باید Code.gs جدید در Apps Script منتشر شود.', '<a class="btn outline" href="../admin.html">پنل قبلی</a>'); return; }
         return call('a_list').then(function (r) {
-          if (!r || !r.ok) { if (r && r.error === 'key') { TY.store.del('akey'); loginView(fromLogin ? 'رمز نادرست است' : ''); } else if (!data) main.innerHTML = TY.empty('alert', 'اتصال برقرار نشد', TY.errText(r), '<button class="btn primary" id="rt">تلاش دوباره</button>'); var rt = TY.$('#rt'); if (rt) rt.onclick = function () { load(); }; return; }
-          TY.store.set('akey', KEY); data = r; TY.store.set('adata', r); draw();
+          if (!r || !r.ok) { if (r && r.error === 'key') { TY.store.del('akey'); if (viaToken) { viaToken = false; KEY = ''; data = null; loginView(); } else loginView(fromLogin ? 'رمز نادرست است' : ''); } else if (!data) main.innerHTML = TY.empty('alert', 'اتصال برقرار نشد', TY.errText(r), '<button class="btn primary" id="rt">تلاش دوباره</button>'); var rt = TY.$('#rt'); if (rt) rt.onclick = function () { load(); }; return; }
+          if (KEY) TY.store.set('akey', KEY); data = r; TY.store.set('adata', r); draw();
         });
       }).catch(function () { if (!data) main.innerHTML = TY.empty('alert', 'اتصال برقرار نشد', 'اینترنت را چک کن.', '<button class="btn primary" onclick="location.reload()">تلاش دوباره</button>'); else TY.toast(TY.errText(), 'err'); });
     }
@@ -139,12 +140,43 @@
         '<a class="row" target="_blank" rel="noopener" href="' + esc(data.adminLink) + '"><span class="tile-ic brand">' + TY.ic('send', 'sm') + '</span><div class="grow"><div class="t">اتصال تلگرام من</div><div class="s">درخواست‌ها با دکمه‌ی ✅/❌ در تلگرام می‌آید · ' + TY.fa((data.admins || []).length) + ' ادمین متصل</div></div>' + TY.ic('external', 'sm chev') + '</a>' +
         '<button class="row" id="mAdd"><span class="tile-ic">' + TY.ic('plus', 'sm') + '</span><div class="grow"><div class="t">افزودن آگهی تلگرامی به برنامه</div><div class="s">برای آگهی‌هایی که مستقیم در کانال گذاشته‌ای</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
         '<button class="row" id="mLog"><span class="tile-ic">' + TY.ic('clock', 'sm') + '</span><div class="grow"><div class="t">رویدادهای اخیر</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
+        '<button class="row" id="mPref"><span class="tile-ic">' + TY.ic('bell', 'sm') + '</span><div class="grow"><div class="t">تنظیمات اعلان ادمین</div><div class="s">انتخاب کن چه چیزهایی برای خودت بیاید</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
+        '<button class="row" id="mAdm"><span class="tile-ic">' + TY.ic('shield', 'sm') + '</span><div class="grow"><div class="t">مدیریت ادمین‌ها</div><div class="s">' + TY.fa((data.adminPeople || []).length) + ' ادمین · افزودن با شماره‌ی موبایل</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
         '<a class="row" href="enter.html"><span class="tile-ic">' + TY.ic('eye', 'sm') + '</span><div class="grow"><div class="t">دیدن نسخه‌ی کاربر</div></div>' + TY.ic('fwd', 'sm chev') + '</a>' +
         '<button class="row" id="mOut" style="color:var(--danger)"><span class="tile-ic danger">' + TY.ic('logout', 'sm') + '</span><div class="grow"><div class="t">خروج از پنل</div></div></button></div>' +
         ((data.admins || []).length ? '<p class="xs muted mt3">ادمین‌های متصل: ' + data.admins.map(function (a) { return esc(a.username ? '@' + a.username : a.name); }).join('، ') + '</p>' : '')});
-      s.el.querySelector('#mOut').onclick = function () { TY.store.del('akey'); TY.store.del('adata'); s.close(); KEY = ''; data = null; loginView(); };
+      s.el.querySelector('#mOut').onclick = function () { TY.store.del('akey'); TY.store.del('adata'); s.close(); KEY = ''; data = null; if (viaToken) { location.href = 'me.html'; return; } loginView(); };
+      s.el.querySelector('#mPref').onclick = function () {
+        s.close();
+        if (!viaToken && !(TY.user() && TY.user().isAdmin)) { setTimeout(function () { TY.toast('برای تنظیم اعلان، با حساب ادمین‌ات وارد برنامه شو', 'err'); }, 320); return; }
+        setTimeout(function () { TY.adminPrefsSheet(); }, 320);
+      };
+      s.el.querySelector('#mAdm').onclick = function () { s.close(); setTimeout(adminsSheet, 320); };
       s.el.querySelector('#mAdd').onclick = function () { s.close(); setTimeout(addSheet, 320); };
       s.el.querySelector('#mLog').onclick = function () { s.close(); setTimeout(logSheet, 320); };
+    }
+    function adminsSheet() {
+      var people = data.adminPeople || [];
+      var f = document.createElement('div'); f.style.display = 'contents'; f.innerHTML = '<button class="btn primary" id="aaGo">' + TY.ic('plus', 'sm') + 'افزودن ادمین</button>';
+      var s = TY.sheet({title: 'مدیریت ادمین‌ها', body: '<p class="small muted" style="margin-top:0">ادمین‌ها در «حساب من» نقش ادمین و پنل را می‌بینند. نفر جدید باید در برنامه عضو و تأییدشده باشد و شماره‌اش را با ربات تلگرام تأیید کرده باشد (دکمه‌ی «تأیید شماره»).</p>' +
+        '<div id="aaList" class="list">' + adminRows(people) + '</div>' +
+        '<div class="field mt4"><label for="aaM">شماره‌ی موبایل ادمین جدید</label><input class="input ltr num" id="aaM" inputmode="tel" placeholder="۰۹۱۲۳۴۵۶۷۸۹" autocomplete="off"></div>', footer: f});
+      function adminRows(ps) {
+        return ps.map(function (a) {
+          return '<div class="row" style="cursor:default"><span class="avatar">' + esc(TY.initial(a.name || 'ا')) + '</span><div class="grow"><div class="t">' + esc(a.name || 'هنوز ثبت‌نام نکرده') + '</div>' +
+            '<div class="s"><span class="num" dir="ltr">' + TY.fa(a.mobile) + '</span> · ' + (a.owner ? 'مالک' : a.active ? 'فعال' : !a.registered ? 'منتظر ثبت‌نام' : 'منتظر تأیید شماره') + '</div></div>' +
+            (a.owner ? '<span class="badge brand">مالک</span>' : '<button class="iconbtn act no" data-rm="' + esc(a.mobile) + '" aria-label="حذف ادمین" title="حذف ادمین">' + TY.ic('x', 'sm') + '</button>') + '</div>';
+        }).join('') || '<div class="small muted">ادمینی ثبت نشده.</div>';
+      }
+      function done(r, msg) { if (r && r.ok) { data.adminPeople = r.admins; TY.$('#aaList', s.body).innerHTML = adminRows(r.admins); TY.toast(msg); } else TY.toast(TY.errText(r), 'err'); }
+      f.querySelector('#aaGo').onclick = function () {
+        var b = this, m = TY.$('#aaM', s.body).value.trim(); if (!m) return; b.classList.add('loading');
+        call('a_user', {op: 'make_admin', mobile: TY.en(m)}).then(function (r) { b.classList.remove('loading'); if (r && r.ok) TY.$('#aaM', s.body).value = ''; done(r, r.registered === false ? 'اضافه شد؛ بعد از ثبت‌نام فعال می‌شود' : 'ادمین اضافه شد'); }).catch(function () { b.classList.remove('loading'); TY.toast(TY.errText(), 'err'); });
+      };
+      s.body.addEventListener('click', function (e) {
+        var x = e.target.closest('[data-rm]'); if (!x) return;
+        TY.confirm('حذف ادمین؟', 'این شماره دیگر به پنل دسترسی ندارد.', 'حذف', true).then(function (y) { if (y) call('a_user', {op: 'remove_admin', mobile: x.getAttribute('data-rm')}).then(function (r) { done(r, 'ادمین حذف شد'); }); });
+      });
     }
     function addSheet() {
       var f = document.createElement('div'); f.style.display = 'contents'; f.innerHTML = '<button class="btn primary" id="ad">افزودن</button>';
@@ -175,7 +207,17 @@
     TY.$('#aRef').onclick = function () { var b = this; b.classList.add('spin'); load().then(function () { b.classList.remove('spin'); TY.toast('به‌روز شد'); }); };
     TY.$('#aMore').onclick = more;
 
-    if (!KEY) { loginView(); return; }
+    if (!KEY) {
+      // بدون رمز: اگر با حساب ادمین وارد برنامه شده‌ای، توکن همان حساب کافی است (رمز فقط روی سرور می‌ماند)
+      var sess = TY.session(), cu = TY.user();
+      if (!sess) { loginView(); return; }
+      main.innerHTML = TY.skeleton(5);
+      (cu && cu.isAdmin ? Promise.resolve({user: cu}) : TY.me()).then(function (m) {
+        if (m && m.user && m.user.isAdmin) { viaToken = true; var c0 = TY.store.get('adata'); if (c0 && c0.users) { data = c0; draw(); } load(); timer = setInterval(function () { if (document.visibilityState === 'visible' && viaToken && data) load(); }, 30000); }
+        else loginView();
+      }).catch(function () { loginView(); });
+      return;
+    }
     var cached = TY.store.get('adata'); if (cached && cached.users) { data = cached; draw(); } else main.innerHTML = TY.skeleton(5);
     load();
     timer = setInterval(function () { if (document.visibilityState === 'visible' && KEY && data) load(); }, 30000);

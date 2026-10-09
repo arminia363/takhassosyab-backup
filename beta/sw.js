@@ -1,5 +1,5 @@
 /* تخصص‌یاب service worker: offline shell + notification clicks. API calls (script.google.com) are never cached. */
-var V = 'ty2-2610090127';
+var V = 'ty2-2610092351';
 var CORE = ['assets/app.css', 'assets/core.js', 'assets/data.js', 'assets/vazirmatn.woff2', 'icon.svg', 'icon-192.png', 'enter.html', 'jobs.html'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(V).then(function (c) { return Promise.all(CORE.map(function (u) { return c.add(u).catch(function () {}); })); }).then(function () { return self.skipWaiting(); }));

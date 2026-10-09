@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<link rel="stylesheet" href="assets/app.css?v=2610092351">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script>
+<script src="assets/data.js?v=2610092351" defer></script><script src="assets/core.js?v=2610092351" defer></script>
 </head>
 <body>
 <main></main>
@@ -24,12 +24,16 @@ var main=$('main');
 if(!TY.session()){main.innerHTML=TY.empty('user','وارد نشده‌ای','برای ثبت آگهی و رزومه و گرفتن اعلان‌های مرتبط، عضو شو.','<div class="stack" style="max-width:300px;margin:0 auto"><a class="btn primary block lg" href="register.html">ثبت‌نام</a><a class="btn outline block" href="register.html?login=1">ورود</a></div>')+
   '<div class="list mt4"><a class="row" href="favorites.html"><span class="tile-ic">'+TY.ic('bookmark','sm')+'</span><div class="grow"><div class="t">ذخیره‌شده‌ها</div></div>'+TY.ic('fwd','sm chev')+'</a><a class="row" href="app.html"><span class="tile-ic">'+TY.ic('download','sm')+'</span><div class="grow"><div class="t">نصب برنامه</div></div>'+TY.ic('fwd','sm chev')+'</a></div>';return;}
 var D=window.TY_DATA;
+function prefSummary(p){if(!p)return 'انتخاب کن چه چیزهایی برایت بیاید';var k=['signup','ad','cv','private','direct','channel','daily'],n=k.filter(function(x){return p[x];}).length,via=[p.tg?'تلگرام':'',p.app?'برنامه':''].filter(Boolean).join(' و ');return TY.fa(n)+' نوع اعلان · '+(via||'خاموش');}
 function draw(me){
   var u=me.user, st={approved:['brand','عضو تأییدشده'],pending:['warn','در انتظار تأیید'],rejected:['danger','رد شده'],blocked:['danger','مسدود']}[u.status]||['',u.status];
   var theme=TY.store.get('theme',null);
   var ints=String(u.interests||'').split(' ').filter(Boolean);
   var push=window.Android?'فعال در برنامه':('Notification' in window?(Notification.permission==='granted'?'فعال':'غیرفعال'):'پشتیبانی نمی‌شود');
-  main.innerHTML='<div class="card mt2"><div class="hstack" style="gap:14px"><span class="avatar lg brand">'+TY.esc(TY.initial(u.name))+'</span><div class="grow" style="min-width:0"><div class="h3">'+TY.esc(u.name||'')+'</div><div class="small muted num" dir="ltr" style="text-align:right">'+TY.fa(u.mobile)+'</div><div class="hstack mt1" style="gap:6px"><span class="badge">'+(u.role==='employer'?'کارفرما':'کارجو')+'</span><span class="badge dotted '+st[0]+'">'+st[1]+'</span></div></div></div></div>'+
+  main.innerHTML='<div class="card mt2"><div class="hstack" style="gap:14px"><span class="avatar lg brand">'+TY.esc(TY.initial(u.name))+'</span><div class="grow" style="min-width:0"><div class="h3">'+TY.esc(u.name||'')+'</div><div class="small muted num" dir="ltr" style="text-align:right">'+TY.fa(u.mobile)+'</div><div class="hstack mt1" style="gap:6px">'+(u.isAdmin?'<span class="badge brand">'+TY.ic('shield','xs')+'ادمین</span>':'<span class="badge">'+(u.role==='employer'?'کارفرما':'کارجو')+'</span>')+'<span class="badge dotted '+st[0]+'">'+st[1]+'</span></div></div></div></div>'+
+   (u.isAdmin?'<div class="section-h"><h2>مدیریت</h2></div><div class="list">'+
+   '<a class="row" href="admin.html"><span class="tile-ic brand">'+TY.ic('shield','sm')+'</span><div class="grow"><div class="t">پنل ادمین</div><div class="s">عضویت‌ها، آگهی‌ها و رزومه‌های منتظر تأیید</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<button class="row" id="admPrefRow"><span class="tile-ic">'+TY.ic('bell','sm')+'</span><div class="grow"><div class="t">تنظیمات اعلان ادمین</div><div class="s">'+TY.esc(prefSummary(me.adminPrefs))+'</div></div>'+TY.ic('fwd','sm chev')+'</button></div>':'')+
    '<div class="section-h" id="mine"><h2>ارسال‌های من</h2><a href="post.html">'+TY.ic('plus','xs')+'جدید</a></div>'+
    ((me.mine||[]).length?'<div class="list">'+me.mine.map(function(m,i){return '<button class="row" data-m="'+i+'"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+'</div></div>'+TY.statusBadge(m.status)+'</button>';}).join('')+'</div>'
      :'<div class="card flat small muted">هنوز آگهی یا رزومه‌ای نفرستاده‌ای.</div>')+
@@ -54,6 +58,7 @@ function draw(me){
     if(id==='intRow') pickInts(u,me);
     if(id==='cityRow') pickCity(u,me);
     if(id==='themeRow') pickTheme(me);
+    if(id==='admPrefRow') TY.adminPrefsSheet({onSaved:function(p){me.adminPrefs=p;draw(me);}});
     if(id==='outRow') TY.confirm('خروج از حساب','برای ورود دوباره، کد از تلگرام برایت می‌آید.','خروج',true).then(function(y){if(y)TY.logout();});
   };
 }

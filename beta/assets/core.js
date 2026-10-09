@@ -221,7 +221,7 @@
   TY.errText = function (r) {
     var e = (r && (r.error || r.detail)) || 'net';
     return ({auth: 'دوباره وارد شو', key: 'رمز ادمین نادرست است', mobile: 'شماره موبایل درست نیست', name: 'نام را بنویس', text: 'متن کامل نیست', rate: 'امروز زیاد ارسال کرده‌ای؛ کمی بعد دوباره امتحان کن',
-      target: 'این آگهی دیگر فعال نیست', status: 'حساب تو فعال نیست', telegram: 'ارسال به تلگرام ناموفق بود: ' + ((r && r.detail) || ''), code: 'کد درست نیست', tries: 'تلاش زیاد؛ ۱۰ دقیقه بعد دوباره امتحان کن',
+      target: 'این آگهی دیگر فعال نیست', owner: 'مالک اصلی را نمی‌شود برداشت', status: 'حساب تو فعال نیست', telegram: 'ارسال به تلگرام ناموفق بود: ' + ((r && r.detail) || ''), code: 'کد درست نیست', tries: 'تلاش زیاد؛ ۱۰ دقیقه بعد دوباره امتحان کن',
       nouser: 'با این شماره عضوی پیدا نشد', blocked: 'این حساب مسدود است', expired: 'زمان ورود تمام شد؛ دوباره امتحان کن', net: 'اتصال برقرار نشد؛ دوباره امتحان کن', network: 'اتصال برقرار نشد؛ دوباره امتحان کن', oldserver: 'نسخه‌ی جدید سرور هنوز فعال نشده است', timeout: 'سرور دیر جواب داد؛ دوباره امتحان کن'})[e] || ('خطا: ' + e);
   };
 
@@ -335,9 +335,48 @@
     if (n.kind === 'resume_direct') return 'inbox.html?tab=inbox&id=' + n.ref;
     if (n.kind === 'match' || n.kind === 'published') { var f = (TY.cachedFeed() || []).filter(function (x) { return x.id === n.ref; })[0]; return (f && f.type === 'jobseeker' ? 'resumes.html' : 'jobs.html') + '?id=' + n.ref; }
     if (n.kind === 'approved') return 'enter.html';
+    if (/^admin_/.test(n.kind)) return n.kind === 'admin_role' ? 'me.html' : 'admin.html';
     return 'inbox.html';
   }
   TY.notifUrl = notifUrl;
+  /* ---------------- admin notification preferences (shared by me.html and admin.html) ---------------- */
+  var PREF_ROWS = [
+    ['signup', 'درخواست عضویت جدید', 'کسی ثبت‌نام کرده و منتظر تأیید است'],
+    ['ad', 'آگهی استخدام در انتظار تأیید', 'آگهی تازه‌ای که باید منتشر یا رد شود'],
+    ['cv', 'رزومه‌ی در انتظار تأیید', 'رزومه‌ای که برای انتشار در کانال فرستاده شده'],
+    ['private', 'رزومه‌ی فقط برای ادمین', 'رزومه‌هایی که فرستنده فقط برای ادمین گذاشته'],
+    ['direct', 'رزومه‌ی ارسال‌شده به کارفرما', 'رزومه‌ی مستقیم برای یک آگهی'],
+    ['channel', 'پست تازه‌ی کانال', 'وقتی آگهی یا رزومه‌ای مستقیم در کانال شناسایی شود'],
+    ['daily', 'خلاصه‌ی روزانه', 'هر روز ساعت ۹ صبح، اگر مورد در انتظاری باشد']
+  ];
+  TY.adminPrefsSheet = function (opt) {
+    opt = opt || {};
+    if (!TY.session()) { TY.toast('اول با حساب خودت وارد شو', 'err'); return; }
+    var u = TY.user() || {};
+    var s = TY.sheet({title: 'تنظیمات اعلان ادمین', body: TY.skeleton(4)});
+    TY.api('admin_prefs').then(function (r) {
+      if (!r || !r.ok) { s.body.innerHTML = TY.empty('alert', 'باز نشد', TY.errText(r)); return; }
+      var p = r.prefs;
+      function tg(k, t, sub, dis) {
+        return '<label class="between card flat" style="cursor:pointer;margin-bottom:8px;gap:12px"><span style="min-width:0"><span class="small" style="display:block"><b>' + TY.esc(t) + '</b></span><span class="xs muted" style="display:block;margin-top:2px">' + TY.esc(sub) + '</span></span>' +
+          '<span class="toggle"><input type="checkbox" data-p="' + k + '"' + (p[k] ? ' checked' : '') + (dis ? ' disabled' : '') + '><span></span></span></label>';
+      }
+      s.body.innerHTML = '<p class="small muted" style="margin-top:0">انتخاب کن چه چیزهایی برای خودت بیاید. این تنظیمات فقط برای حساب خودت است.</p>' +
+        '<div class="section-h" style="margin-top:4px"><h2>چه چیزهایی؟</h2></div>' + PREF_ROWS.map(function (x) { return tg(x[0], x[1], x[2]); }).join('') +
+        '<div class="section-h"><h2>از کجا برسد؟</h2></div>' +
+        tg('tg', 'پیام تلگرام', u.tg ? 'با دکمه‌ی ✅ و ❌ در ربات' : 'تلگرامت وصل نیست؛ از «حساب من» وصلش کن') + tg('app', 'اعلان داخل برنامه', 'در بخش اعلان‌ها و زنگوله');
+      s.body.insertAdjacentHTML('beforeend', '<button class="btn primary block mt3" id="pSave">ذخیره</button>');
+      s.body.querySelector('#pSave').onclick = function () {
+        var b = this, o = {}; b.classList.add('loading');
+        TY.$$('[data-p]', s.body).forEach(function (c) { o[c.getAttribute('data-p')] = c.checked ? 1 : 0; });
+        TY.api('admin_prefs', {prefs: o}).then(function (x) {
+          b.classList.remove('loading');
+          if (x && x.ok) { var m = TY.store.get('me'); if (m) { m.adminPrefs = x.prefs; TY.store.set('me', m); } s.close(); TY.toast('ذخیره شد'); if (opt.onSaved) opt.onSaved(x.prefs); }
+          else TY.toast(TY.errText(x), 'err');
+        }).catch(function () { b.classList.remove('loading'); TY.toast(TY.errText(), 'err'); });
+      };
+    }).catch(function () { s.body.innerHTML = TY.empty('alert', 'اتصال برقرار نشد', 'دوباره امتحان کن'); });
+  };
   TY.enablePush = function () {
     if (window.Android) { TY.toast('اعلان‌ها در برنامه فعال است'); return Promise.resolve(true); }
     if (!('Notification' in window)) { TY.toast('این مرورگر اعلان را پشتیبانی نمی‌کند؛ تلگرام را وصل کن', 'err'); return Promise.resolve(false); }
