@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610092351">
+<link rel="stylesheet" href="assets/app.css?v=2610100035">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610092351" defer></script><script src="assets/core.js?v=2610092351" defer></script>
+<script src="assets/data.js?v=2610100035" defer></script><script src="assets/core.js?v=2610100035" defer></script>
 </head>
 <body>
 <main></main>
@@ -53,20 +53,28 @@ function pending(me){
    '<a class="row" href="'+(u.role==='employer'?'employer.html':'jobseeker.html')+'"><span class="tile-ic brand">'+TY.ic(u.role==='employer'?'building':'resume','sm')+'</span><div class="grow"><div class="t">'+(u.role==='employer'?'آگهی‌ات را آماده کن':'رزومه‌ات را بساز')+'</div><div class="s">همراه عضویت بررسی می‌شود</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
    '<a class="row" href="'+TY.GROUP+'" target="_blank" rel="noopener"><span class="tile-ic">'+TY.ic('users','sm')+'</span><div class="grow"><div class="t">گروه گفتگوی تلگرام</div></div>'+TY.ic('external','sm chev')+'</a></div>';
 }
-function rejected(me){main.innerHTML=TY.empty('alert','درخواست عضویت تأیید نشد','اگر فکر می‌کنی اشتباه شده، به ادمین پیام بده.','<a class="btn primary" href="https://t.me/'+TY.SUPPORT+'" target="_blank" rel="noopener">پیام به ادمین</a>');}
+function rejected(me){var u=me.user,bl=u.status==='blocked',why=u.reason?'<p class="small" style="margin:0 0 12px"><b>دلیل:</b> '+TY.esc(u.reason)+'</p>':'';
+  main.innerHTML=TY.empty(bl?'lock':'alert',bl?'دسترسی این حساب بسته شده':'درخواست عضویت تأیید نشد',bl?'اگر فکر می‌کنی اشتباه شده، به پشتیبانی پیام بده؛ بررسی می‌کنیم.':'ممکن است نام یا شماره کامل نبوده باشد. می‌توانی دوباره درخواست بدهی یا با ادمین صحبت کنی.',why+'<div class="stack" style="max-width:320px;margin:0 auto">'+(bl?'':'<a class="btn primary block" href="register.html?force=1">درخواست دوباره</a>')+'<a class="btn '+(bl?'primary':'outline')+' block" href="https://t.me/'+TY.SUPPORT+'" target="_blank" rel="noopener">پیام به پشتیبانی</a></div>');}
 function approved(me){
   var u=me.user, emp=u.role==='employer', feed=TY.cachedFeed()||[];
   var h='<section style="padding:16px 0 4px"><div class="between"><div><div class="eyebrow">'+(emp?'کارفرما':'کارجو')+'</div><h1 class="h2">سلام، '+TY.esc((u.name||'').split(' ')[0])+'</h1></div></div></section>';
   if(u.invite && !TY.store.get('inv_ok')) h+='<div class="banner brand mt3">'+TY.ic('megaphone','sm')+'<div class="grow"><b>لینک اختصاصی ورود به کانال</b>عضویتت تأیید شد. این لینک یک‌بارمصرف مخصوص توست.<div class="btnrow mt2"><a class="btn primary sm" style="flex:0 0 auto" target="_blank" rel="noopener" href="'+TY.esc(u.invite)+'" id="invGo">ورود به کانال</a><button class="btn ghost sm" style="flex:0 0 auto" id="invX">بعداً</button></div></div></div>';
   if(!u.tg) h+='<div class="banner info mt3">'+TY.ic('bell','sm')+'<div class="grow"><b>اعلان فوری روی گوشی</b>تلگرامت را وصل کن تا '+(emp?'رزومه‌های مرتبط':'آگهی‌های مرتبط')+' همان لحظه خبرت کنند.<div><a class="btn primary sm" target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'">'+TY.ic('send','xs')+'اتصال تلگرام</a></div></div></div>';
+  if(!String(u.interests||'').trim()&&!(me.mine||[]).length) h+='<div class="banner info mt3">'+TY.ic('star','sm')+'<div class="grow"><b>حوزه‌ی کاریت را انتخاب کن</b>تا فقط '+(emp?'رزومه‌های':'آگهی‌های')+' مرتبط خبرت کنیم و بالای صفحه ببینی.<div><button class="btn primary sm" id="intGo">انتخاب حوزه‌ها</button></div></div></div>';
   h+='<div class="grid2 mt4">'+
      '<a class="card" href="'+(emp?'employer.html':'jobseeker.html')+'" style="color:inherit"><span class="tile-ic brand">'+TY.ic(emp?'building':'resume','sm')+'</span><div class="h3 mt3">'+(emp?'ثبت آگهی':'ساخت رزومه')+'</div><div class="xs muted">'+(emp?'بعد از تأیید، در کانال':'انتشار یا ارسال مستقیم')+'</div></a>'+
-     '<a class="card" href="'+(emp?'inbox.html?tab=inbox':'jobs.html')+'" style="color:inherit"><span class="tile-ic">'+TY.ic(emp?'inbox':'briefcase','sm')+'</span><div class="h3 mt3">'+(emp?'رزومه‌های دریافتی':'آگهی‌ها')+'</div><div class="xs muted num">'+(emp?TY.fa((me.inbox||[]).length)+' رزومه':TY.fa(feed.filter(function(x){return x.type==='employer'}).length)+' آگهی فعال')+'</div></a></div>';
+     '<a class="card" href="'+(emp?'inbox.html?tab=inbox':'jobs.html')+'" style="color:inherit"><span class="tile-ic">'+TY.ic(emp?'inbox':'briefcase','sm')+'</span><div class="h3 mt3">'+(emp?'رزومه‌های دریافتی':'آگهی‌ها')+'</div><div class="xs muted num" id="adCnt">'+(emp?TY.fa((me.inbox||[]).length)+' رزومه':TY.fa(feed.filter(function(x){return x.type==='employer'}).length)+' آگهی فعال')+'</div></a></div>';
   h+='<div class="section-h"><h2>مرتبط با تو</h2><a href="'+(emp?'resumes.html':'jobs.html')+'">همه'+TY.ic('fwd','xs')+'</a></div><div id="rel">'+skRows(3)+'</div>';
   if((me.mine||[]).length) h+='<div class="section-h"><h2>ارسال‌های من</h2><a href="me.html#mine">همه'+TY.ic('fwd','xs')+'</a></div><div class="list">'+me.mine.slice(0,3).map(function(m){return '<a class="row" href="me.html#mine"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+'</div></div>'+TY.statusBadge(m.status)+'</a>';}).join('')+'</div>';
   main.innerHTML=h;
+  var igb=$('#intGo'); if(igb) igb.onclick=function(){var D=window.TY_DATA||{depts:[]},sel=[];
+    var sh=TY.sheet({title:'حوزه‌های مورد علاقه',body:'<p class="small muted" style="margin-top:0">هر چند حوزه که می‌خواهی.</p><div class="chips">'+D.depts.map(function(d){return '<button class="chip brand" data-t="'+d.tag+'" aria-pressed="false">'+TY.esc(d.name)+'</button>';}).join('')+'</div>',footer:'<button class="btn primary" id="svI">ذخیره</button>'});
+    sh.body.onclick=function(e){var b=e.target.closest('[data-t]');if(b)b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');};
+    sh.el.querySelector('#svI').onclick=function(){var v=TY.$$('[data-t][aria-pressed=true]',sh.body).map(function(b){return b.getAttribute('data-t');}).join(' ');if(!v){TY.toast('حداقل یک حوزه را انتخاب کن','err');return;}var b=this;b.classList.add('loading');
+      TY.api('profile',{interests:v}).then(function(r){b.classList.remove('loading');if(r&&r.ok){sh.close();me.user=r.user;TY.store.set('me',me);TY.toast('ذخیره شد');approved(me);}else TY.toast(TY.errText(r),'err');}).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');});};};
   var ig=$('#invGo'),ix=$('#invX'); if(ig) ig.onclick=function(){TY.store.set('inv_ok',1);}; if(ix) ix.onclick=function(){TY.store.set('inv_ok',1);this.closest('.banner').remove();};
   function rel(items){
+    var ac=$('#adCnt'); if(ac&&!emp) ac.textContent=TY.fa(items.filter(function(x){return x.type==='employer'}).length)+' آگهی فعال';
     var want=emp?'jobseeker':'employer', ints=String(u.interests||'').split(' ').filter(Boolean);
     var rows=items.filter(function(x){return x.type===want;});
     var m=ints.length?rows.filter(function(x){return String(x.cat).split(' ').some(function(c){return ints.indexOf(c)>=0;});}):[];

@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610092351">
+<link rel="stylesheet" href="assets/app.css?v=2610100035">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610092351" defer></script><script src="assets/core.js?v=2610092351" defer></script>
+<script src="assets/data.js?v=2610100035" defer></script><script src="assets/core.js?v=2610100035" defer></script>
 </head>
 <body>
 <main class="nonav"></main>
@@ -36,7 +36,7 @@ function draw(){
      '<div class="field" id="w_name"><label for="name">نام و نام خانوادگی</label><input class="input" id="name" autocomplete="name" value="'+TY.esc(ou.name||'')+'" enterkeyhint="next"><div class="errmsg" hidden></div></div>':'')+
    '<div class="field" id="w_mobile"><label for="mobile">شماره موبایل</label><input class="input ltr num" id="mobile" inputmode="numeric" autocomplete="tel" placeholder="09xx xxx xxxx" value="'+TY.esc(oldMobile)+'" enterkeyhint="go"><div class="errmsg" hidden></div></div>'+
    '<button class="btn primary block lg mt2" id="go">'+(mode==='signup'?'ثبت‌نام':'ادامه')+'</button></form>'+
-   '<p class="xs faint center mt4">با ثبت‌نام، اطلاعاتت فقط برای ارتباط شغلی و نزد ادمین‌های تخصص‌یاب می‌ماند.</p>');
+   (mode==='login'?'<p class="xs muted center mt4">وارد نمی‌شوی یا تلگرام نداری؟ <a href="https://t.me/'+TY.SUPPORT+'" target="_blank" rel="noopener" style="color:var(--brand-text);font-weight:700">پیام به پشتیبانی</a></p>':'')+'<p class="xs faint center mt4">با ثبت‌نام، اطلاعاتت فقط برای ارتباط شغلی و نزد ادمین‌های تخصص‌یاب می‌ماند.</p>');
 }
 function fieldErr(k,msg){var w=$('#w_'+k);if(!w)return;w.classList.toggle('err',!!msg);var e=w.querySelector('.errmsg');e.hidden=!msg;e.textContent=msg||'';}
 main.addEventListener('click',function(e){
@@ -61,7 +61,7 @@ function connect(u){
     '<div class="card mt4"><ol class="timeline"><li class="done"><span class="st">'+TY.ic('check','xs')+'</span><div><div class="tt">درخواست عضویت ثبت شد</div><div class="ts">برای ادمین‌ها فرستاده شد</div></div></li>'+
     '<li class="now" id="tgStep"><span class="st">۲</span><div class="grow"><div class="tt">اتصال تلگرام</div><div class="ts" id="tgState">هنوز وصل نشده</div></div></li></ol></div>'+
     '<a class="btn primary block lg mt4" target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'" id="tgGo">'+TY.ic('send','sm')+'باز کردن ربات در تلگرام</a>'+
-    '<a class="btn ghost block mt2" href="enter.html">بعداً</a>');
+    '<a class="btn ghost block mt2" href="enter.html" id="later">'+(TY.store.get('ret')?'ادامه؛ بعداً وصل می‌کنم':'بعداً')+'</a>');var lt=$('#later');if(lt)lt.onclick=function(e){e.preventDefault();TY.afterLogin();};
   var n=0, iv=setInterval(function(){ if(++n>100){clearInterval(iv);return;} TY.me().then(function(r){ if(r&&r.user&&r.user.tg){clearInterval(iv);$('#tgStep').className='done';$('#tgStep .st').innerHTML=TY.ic('check','xs');$('#tgState').textContent='وصل شد';TY.toast('تلگرام وصل شد');setTimeout(function(){TY.afterLogin();},1200);} }); },4000);
 }
 function login(mobile,b){
@@ -72,7 +72,9 @@ function login(mobile,b){
 }
 function otp(mobile){
   main.innerHTML=shell('<h1 class="h2 mt4">کد ورود</h1><p class="muted mt2">کد ۵ رقمی را ربات تخصص‌یاب در تلگرام برایت فرستاد.</p><div class="otp mt6" id="otp">'+[0,1,2,3,4].map(function(i){return '<input inputmode="numeric" maxlength="1" aria-label="رقم '+(i+1)+'"'+(i===0?' autocomplete="one-time-code"':'')+'>';}).join('')+'</div>'+
-   '<button class="btn primary block lg mt6" id="vgo">ورود</button><button class="btn ghost block mt2" id="again">ارسال دوباره</button>');
+   '<button class="btn primary block lg mt6" id="vgo">ورود</button><button class="btn ghost block mt2" id="again">ارسال دوباره</button><button class="btn ghost block" id="chg">شماره را عوض می‌کنم</button>');
+  $('#chg').onclick=function(){mode='login';oldMobile=mobile;draw();};
+  (function(){var cd=30,ab=$('#again');ab.disabled=true;var ci=setInterval(function(){cd--;if(!document.body.contains(ab)){clearInterval(ci);return;}ab.textContent=cd>0?'ارسال دوباره ('+TY.fa(cd)+')':'ارسال دوباره';if(cd<=0){ab.disabled=false;clearInterval(ci);}},1000);})();
   var ins=TY.$$('#otp input'); ins[0].focus();
   ins.forEach(function(inp,i){ inp.addEventListener('input',function(){ var v=TY.en(inp.value).replace(/\D/g,''); if(v.length>1){v.split('').slice(0,5).forEach(function(c,j){if(ins[j])ins[j].value=c;});ins[Math.min(v.length,4)].focus();} else {inp.value=v; if(v&&ins[i+1]) ins[i+1].focus();} if(ins.every(function(x){return x.value;})) $('#vgo').click(); });
     inp.addEventListener('keydown',function(e){ if(e.key==='Backspace'&&!inp.value&&ins[i-1]) ins[i-1].focus(); }); });
@@ -81,11 +83,12 @@ function otp(mobile){
     TY.api('login_verify',{mobile:mobile,code:code}).then(function(r){ b.classList.remove('loading'); if(r&&r.ok){TY.setSession(r.token,r.user);TY.toast('خوش آمدی');TY.afterLogin();} else {TY.toast(TY.errText(r),'err');ins.forEach(function(x){x.value='';});ins[0].focus();} })
     .catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');}); };
 }
+function expiredView(mobile){main.innerHTML=shell('<h1 class="h2 mt4">زمان ورود تمام شد</h1><p class="muted mt2">تأییدی از تلگرام نرسید. دوباره امتحان کن؛ فقط کافی است ربات را باز کنی و دکمه‌ی ارسال شماره را بزنی.</p><button class="btn primary block lg mt6" id="retry">دوباره امتحان کن</button><button class="btn ghost block mt2" id="chg2">شماره را عوض می‌کنم</button>');$('#retry').onclick=function(){this.classList.add('loading');login(mobile,this);};$('#chg2').onclick=function(){mode='login';oldMobile=mobile;draw();};}
 function viaTg(mobile,r){
   main.innerHTML=shell('<h1 class="h2 mt4">ورود با تلگرام</h1><p class="muted mt2">ربات را باز کن، <b>Start</b> و بعد دکمه‌ی <b>«ارسال شماره و ورود»</b> را بزن. شماره‌ی تلگرامت باید همین <span class="num" dir="ltr">'+TY.fa(mobile)+'</span> باشد.</p>'+
    '<a class="btn primary block lg mt6" target="_blank" rel="noopener" href="'+TY.esc(r.link)+'">'+TY.ic('send','sm')+'باز کردن ربات</a><p class="small muted center mt4 hstack" style="justify-content:center"><span class="pulse"></span>منتظر تأیید از تلگرام…</p>');
-  var n=0, iv=setInterval(function(){ if(++n>90){clearInterval(iv);TY.toast(TY.errText({error:'expired'}),'err');return;}
-    TY.api('login_poll',{nonce:r.nonce}).then(function(p){ if(p&&p.ok&&p.token){clearInterval(iv);TY.setSession(p.token,p.user);TY.toast('خوش آمدی');TY.afterLogin();} else if(p&&p.error==='expired'){clearInterval(iv);TY.toast(TY.errText(p),'err');} }); },3500);
+  var n=0, iv=setInterval(function(){ if(++n>90){clearInterval(iv);expiredView(mobile);return;}
+    TY.api('login_poll',{nonce:r.nonce}).then(function(p){ if(p&&p.ok&&p.token){clearInterval(iv);TY.setSession(p.token,p.user);TY.toast('خوش آمدی');TY.afterLogin();} else if(p&&p.error==='expired'){clearInterval(iv);expiredView(mobile);} }); },3500);
 }
 draw();
 

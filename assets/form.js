@@ -30,12 +30,19 @@
       return;
     }
 
-    var st = TY.store.get(KEY, null) || {coop: [], salMode: isCV ? 'none' : 'agree', exp: [{}], skills: [], soft: [], vis: 'channel'};
+    var rawDraft = TY.store.get(KEY, null), lastSt = TY.store.get('last_' + kind, null);
+    var hadDraft = !!(rawDraft && (rawDraft.dept || rawDraft.pos || rawDraft.reqs || rawDraft.summary || rawDraft.headline || rawDraft.extra));
+    function freshSt() {
+      var s0 = {coop: [], salMode: isCV ? 'none' : 'agree', exp: [{}], skills: [], soft: [], vis: 'channel'};
+      if (user) { s0.contact = user.mobile; if (isCV) s0.name = user.name; if (user.city) s0.city = user.city; }
+      return s0;
+    }
+    var st = rawDraft || freshSt();
     if (!st.contact && user) st.contact = user.mobile;
     if (isCV && !st.name && user) st.name = user.name;
     if (!st.city && user && user.city) st.city = user.city;
     var to = TY.qs('to'); if (isCV && to) { st.vis = 'direct'; st.target = to; }
-    var step = 0;
+    var step = 0, finished = false, confirmedDup = false;
 
     function deptObj() { return D.depts.filter(function (d) { return d.name === st.dept; })[0]; }
     function titleTxt() { var p = st.pos === 'سایر' || !st.pos ? (st.custom || '') : st.pos; return p && st.extra ? p + ' – ' + st.extra : (p || st.extra || ''); }
@@ -187,7 +194,9 @@
 
     function render() {
       var S = STEPS[step];
-      main.innerHTML = (user && user.status === 'pending' ? '<div class="banner warn mb">' + TY.ic('clock', 'sm') + '<div class="grow">عضویتت هنوز در انتظار تأیید است؛ ' + (isCV ? 'رزومه‌ات' : 'آگهی‌ات') + ' همراه آن بررسی می‌شود.</div></div>' : '') +
+      main.innerHTML = (step === 0 && hadDraft ? '<div class="banner brand mb">' + TY.ic('check', 'sm') + '<div class="grow">پیش‌نویس قبلی‌ات برگشت؛ از همان‌جا ادامه بده.<div><button type="button" class="btn ghost sm" data-newdraft>شروع از نو</button></div></div></div>' : '') +
+        (step === 0 && !hadDraft && lastSt ? '<div class="banner mb">' + TY.ic('copy', 'sm') + '<div class="grow">' + (isCV ? 'رزومه‌ی قبلی‌ات را داری.' : 'آگهی قبلی‌ات را داری.') + '<div><button type="button" class="btn outline sm" data-uselast>' + (isCV ? 'پر کردن از رزومه‌ی قبلی' : 'پر کردن از آگهی قبلی') + '</button></div></div></div>' : '') +
+        (user && user.status === 'pending' ? '<div class="banner warn mb">' + TY.ic('clock', 'sm') + '<div class="grow">عضویتت هنوز در انتظار تأیید است؛ ' + (isCV ? 'رزومه‌ات' : 'آگهی‌ات') + ' همراه آن بررسی می‌شود.</div></div>' : '') +
         '<div class="steps" aria-hidden="true">' + STEPS.map(function (x, i) { return '<i class="' + (i < step ? 'done' : (i === step ? 'on' : '')) + '"></i>'; }).join('') + '</div>' +
         '<div class="stephead"><div><div class="eyebrow">مرحله‌ی ' + TY.fa(step + 1) + ' از ' + TY.fa(STEPS.length) + '</div><h2 class="h2">' + esc(S.s) + '</h2></div></div>' +
         '<form id="form" novalidate>' + S.r() + '</form>';
@@ -197,7 +206,7 @@
       bar.innerHTML = '<div class="in">' + (step ? '<button class="btn ghost" id="prev">' + TY.ic('back', 'sm') + 'قبلی</button>' : '') +
         '<button class="btn ' + (last ? 'primary' : 'dark') + ' lg" id="next">' + (last ? (isCV && st.vis === 'direct' ? 'ارسال برای کارفرما' : (isCV && st.vis === 'admin' ? 'ارسال برای ادمین' : 'ارسال برای تأیید')) : 'ادامه') + (last ? '' : TY.ic('fwd', 'sm')) + '</button></div>';
       document.getElementById('next').onclick = next;
-      var pv = document.getElementById('prev'); if (pv) pv.onclick = function () { step--; render(); window.scrollTo(0, 0); };
+      var pv = document.getElementById('prev'); if (pv) pv.onclick = function () { if (history.state && history.state.fstep === step) history.back(); else { step--; render(); window.scrollTo(0, 0); } };
       // city free text mirrors chip
       var cityIn = document.getElementById('f_city'); if (cityIn && CITY_TAGS.indexOf(st.city) >= 0) cityIn.value = '';
     }
@@ -224,11 +233,18 @@
     }
     function next() {
       if (!check()) return;
-      if (step < STEPS.length - 1) { step++; render(); window.scrollTo(0, 0); return; }
+      if (step < STEPS.length - 1) { step++; try { history.pushState({fstep: step}, ''); } catch (e) {} render(); window.scrollTo(0, 0); return; }
       submit();
     }
     function submit() {
       var b = document.getElementById('next');
+      if (b && b.classList.contains('loading')) return;
+      var tx = buildText(), h = tx.length + ':' + tx.slice(0, 160) + tx.slice(-100), ls = TY.store.get('lastsub', null);
+      if (ls && ls.h === h && Date.now() - ls.t < 900000 && !confirmedDup) {
+        TY.confirm('همین را چند دقیقه پیش فرستاده‌ای', 'اگر ارسال قبلی انجام نشد دوباره بفرست؛ وگرنه «ارسال‌های من» را ببین تا دو بار برای ادمین نرود.', 'ارسال دوباره').then(function (y) { if (y) { confirmedDup = true; submit(); } });
+        return;
+      }
+      TY.store.set('lastsub', {h: h, t: Date.now()});
       TY.needV2().then(function (ok) {
         if (!ok) return;
         b.classList.add('loading');
@@ -236,19 +252,20 @@
         TY.api('submit', {type: kind, title: isCV ? (st.name + (titleTxt() ? ' | ' + titleTxt() : '')) : titleTxt(), text: text, tags: tags().join(' '), city: [st.city, st.area].filter(Boolean).join('، '),
           contact: TY.en(st.contact || ''), vis: isCV ? st.vis : 'channel', target: isCV && st.vis === 'direct' ? st.target : '', fields: st}).then(function (r) {
           b.classList.remove('loading');
-          if (!r || !r.ok) { TY.toast(TY.errText(r), 'err'); return; }
+          if (!r || !r.ok) { TY.store.del('lastsub'); TY.toast(TY.errText(r), 'err'); return; }
+          var keep = JSON.parse(JSON.stringify(st)); delete keep.target; if (keep.vis === 'direct') keep.vis = isCV ? 'channel' : keep.vis; TY.store.set('last_' + kind, keep);
           TY.store.del(KEY); done(r.status);
           TY.me();
         }).catch(function (e) { b.classList.remove('loading'); TY.toast(TY.errText({error: e && e.message === 'timeout' ? 'timeout' : 'net'}), 'err'); });
       });
     }
     function done(status) {
-      var bar = document.querySelector('.actionbar'); if (bar) bar.remove(); document.body.classList.remove('has-ab');
+      finished = true; var bar = document.querySelector('.actionbar'); if (bar) bar.remove(); document.body.classList.remove('has-ab');
       var msg = {pending: [isCV ? 'رزومه‌ات برای ادمین رفت' : 'آگهی‌ات برای بررسی رفت', 'بعد از تأیید ادمین در کانال @JobVacencies و برنامه منتشر می‌شود و همین‌جا و در تلگرام خبرت می‌کنیم.'],
         private: ['رزومه‌ات برای ادمین فرستاده شد', 'رزومه عمومی نمی‌شود. ادمین‌ها آن را می‌بینند و برای فرصت مناسب معرفی‌ات می‌کنند.'],
         direct: ['رزومه‌ات برای کارفرما رفت', 'کارفرما در برنامه و تلگرام آن را می‌بیند. موفق باشی!']}[status] || ['ارسال شد', ''];
       main.innerHTML = '<div class="empty" style="padding-top:56px"><div class="ic" style="background:var(--brand-soft);color:var(--brand-text)">' + TY.ic('check', 'lg') + '</div><h3 class="h2" style="margin-bottom:8px">' + esc(msg[0]) + '</h3><p>' + esc(msg[1]) + '</p>' +
-        '<div class="stack" style="max-width:320px;margin:0 auto"><a class="btn primary block lg" href="me.html#mine">دیدن ارسال‌های من</a><a class="btn outline block" href="enter.html">بازگشت به خانه</a></div></div>';
+        '<div class="stack" style="max-width:320px;margin:0 auto">' + (user && !user.tg && user.tgLink ? '<a class="btn outline block" target="_blank" rel="noopener" href="' + esc(user.tgLink) + '">' + TY.ic('send', 'sm') + 'برای خبر تأیید، تلگرام را وصل کن</a>' : '') + '<a class="btn primary block lg" href="me.html#mine">دیدن ارسال‌های من</a><a class="btn outline block" href="enter.html">بازگشت به خانه</a></div></div>';
       window.scrollTo(0, 0);
     }
     function pickAd() {
@@ -272,6 +289,8 @@
     });
     main.addEventListener('change', function (e) { var t = e.target, k = t.getAttribute('data-k'); if (k) { st[k] = t.type === 'checkbox' ? t.checked : t.value; save(); } });
     main.addEventListener('click', function (e) {
+      if (e.target.closest('[data-newdraft]')) { TY.store.del(KEY); hadDraft = false; st = freshSt(); render(); return; }
+      if (e.target.closest('[data-uselast]')) { st = JSON.parse(JSON.stringify(lastSt)); delete st.target; if (st.vis === 'direct') st.vis = 'channel'; if (!isCV) st.vis = 'channel'; save(); render(); TY.toast('پر شد؛ هر چه لازم است عوض کن'); return; }
       var c = e.target.closest('[data-chip]');
       if (c) {
         var k = c.getAttribute('data-chip'), v = c.getAttribute('data-v');
@@ -296,6 +315,8 @@
     function addTag(k) { var i = document.getElementById('add_' + k); var v = (i.value || '').trim(); if (!v) return; st[k] = st[k] || []; if (st[k].indexOf(v) < 0) st[k].unshift(v); save(); render(); setTimeout(function () { var n = document.getElementById('add_' + k); if (n) n.focus(); }, 0); }
 
     if (isCV && !TY.cachedFeed()) TY.feed().then(function () { if (st.vis === 'direct') render(); });
+    try { history.replaceState({fstep: 0}, ''); } catch (e) {}
+    window.addEventListener('popstate', function (e) { var fs = e.state && e.state.fstep; if (!finished && typeof fs === 'number' && fs < step) { step = fs; render(); window.scrollTo(0, 0); } });
     render();
     TY.me().then(function (r) { if (r && r.user) { user = r.user; } });
   };

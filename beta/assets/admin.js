@@ -87,11 +87,29 @@
 
     function findU(m) { return data.users.filter(function (u) { return u.mobile === m; })[0]; }
     function findI(id) { return data.items.filter(function (x) { return String(x.id) === String(id); })[0]; }
-    function act(spec, btn) {
+    // reject needs a second look (two small buttons side by side; the sender is notified). With a backend that supports it, the admin can add a reason.
+    function askReason(spec) {
+      var isU = spec.charAt(0) === 'u';
+      if (!(data && data.features && data.features.reason)) return TY.confirm(isU ? 'عضویت رد شود؟' : 'این مورد رد شود؟', isU ? 'کاربر خبر رد را می‌گیرد؛ بعداً می‌توانی بازگردانی کنی.' : 'فرستنده خبر رد را می‌گیرد و مورد منتشر نمی‌شود.', 'رد کن', true).then(function (y) { return y ? '' : null; });
+      return new Promise(function (res) {
+        var R = isU ? ['اطلاعات کامل نیست', 'نام یا شماره درست نیست', 'تکراری است'] : ['متن کامل نیست', 'راه ارتباط ندارد', 'تکراری است', 'مناسب کانال نیست'];
+        var f = document.createElement('div'); f.style.display = 'contents'; f.innerHTML = '<button class="btn outline" data-n>انصراف</button><button class="btn danger" data-y>رد کن</button>';
+        var done = false, s = TY.sheet({title: isU ? 'دلیل رد عضویت' : 'دلیل رد', body: '<p class="small muted" style="margin-top:0">اختیاری؛ برای فرستنده نمایش داده می‌شود.</p><div class="chips" id="rsC">' + R.map(function (x) { return '<button type="button" class="chip" aria-pressed="false" data-r="' + esc(x) + '">' + esc(x) + '</button>'; }).join('') + '</div><div class="field mt3"><textarea class="textarea" id="rsT" rows="2" placeholder="توضیح کوتاه"></textarea></div>', footer: f, onClose: function () { if (!done) res(null); }});
+        s.body.addEventListener('click', function (e) { var c = e.target.closest('[data-r]'); if (!c) return; var on = c.getAttribute('aria-pressed') !== 'true'; TY.$$('[data-r]', s.body).forEach(function (x) { x.setAttribute('aria-pressed', 'false'); }); c.setAttribute('aria-pressed', on); if (on) TY.$('#rsT', s.body).value = c.getAttribute('data-r'); });
+        f.querySelector('[data-y]').onclick = function () { done = true; res(TY.$('#rsT', s.body).value.trim()); s.close(); };
+        f.querySelector('[data-n]').onclick = function () { done = true; res(null); s.close(); };
+      });
+    }
+    function actAsk(spec, btn) {
+      if (!/^[ui]:r:/.test(spec)) return act(spec, btn);
+      return askReason(spec).then(function (rs) { return rs === null ? false : act(spec, btn, rs); });
+    }
+    function act(spec, btn, reason) {
       var p = spec.split(':'), t = p[0], op = p[1], id = p.slice(2).join(':');
       var row = btn && btn.closest('.arow'); if (row) row.style.opacity = .45;
       if (btn) btn.classList.add('loading');
-      var req = t === 'u' ? call('a_user', {mobile: id, op: op === 'a' ? 'approve' : op === 'r' ? 'reject' : op}) : call('a_item', {id: id, op: op === 'a' ? 'approve' : op === 'r' ? 'reject' : op});
+      var rx = reason ? {reason: reason} : {};
+      var req = t === 'u' ? call('a_user', Object.assign({mobile: id, op: op === 'a' ? 'approve' : op === 'r' ? 'reject' : op}, rx)) : call('a_item', Object.assign({id: id, op: op === 'a' ? 'approve' : op === 'r' ? 'reject' : op}, rx));
       return req.then(function (r) {
         if (!r || !r.ok) { if (row) row.style.opacity = 1; if (btn) btn.classList.remove('loading'); TY.toast(TY.errText(r), 'err'); return false; }
         if (t === 'u') { var u = findU(id); if (u) u.status = op === 'a' ? 'approved' : op === 'r' ? 'rejected' : op === 'block' ? 'blocked' : op === 'restore' ? 'pending' : u.status; TY.toast(op === 'a' ? 'عضویت تأیید شد و لینک کانال فرستاده شد' : op === 'r' ? 'درخواست رد شد' : 'انجام شد'); }
@@ -112,7 +130,7 @@
         '<dt>تلگرام</dt><dd>' + (u.tg ? (u.tg_user ? '<a href="https://t.me/' + esc(u.tg_user) + '" target="_blank" rel="noopener" dir="ltr">@' + esc(u.tg_user) + '</a>' : 'متصل') + (u.verified ? ' · شماره تأییدشده' : '') : 'متصل نشده') + '</dd>' +
         '<dt>شهر</dt><dd>' + esc(u.city || '—') + '</dd><dt>حوزه‌ها</dt><dd>' + esc(ints || '—') + '</dd></dl>' +
         '<div class="list mt4">' + data.items.filter(function (x) { return x.owner === u.mobile; }).map(function (x) { return itemRow(x, false); }).join('') + '</div>', footer: f});
-      f.addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (!b) return; act(b.getAttribute('data-a'), b).then(function (ok) { if (ok) s.close(); }); });
+      f.addEventListener('click', function (e) { var b = e.target.closest('[data-a]'); if (!b) return; actAsk(b.getAttribute('data-a'), b).then(function (ok) { if (ok) s.close(); }); });
       s.body.addEventListener('click', function (e) { var r = e.target.closest('[data-i]'); if (r) { s.close(); setTimeout(function () { itemSheet(findI(r.getAttribute('data-i'))); }, 320); } });
     }
     function itemSheet(x) {
@@ -131,7 +149,7 @@
         if (e.target.closest('[data-copy]')) { TY.copy(x.text); return; }
         var b = e.target.closest('[data-a]'); if (!b) return;
         var spec = b.getAttribute('data-a');
-        var go = function () { act(spec, b).then(function (ok) { if (ok) s.close(); }); };
+        var go = function () { actAsk(spec, b).then(function (ok) { if (ok) s.close(); }); };
         if (spec.indexOf(':delete:') > 0) TY.confirm('حذف شود؟', x.msg_id ? 'از برنامه و کانال تلگرام هم پاک می‌شود.' : 'از برنامه پاک می‌شود.', 'حذف', true).then(function (y) { if (y) go(); }); else go();
       });
     }
@@ -198,7 +216,7 @@
     }
 
     main.addEventListener('click', function (e) {
-      var a = e.target.closest('[data-act]'); if (a) { e.stopPropagation(); act(a.getAttribute('data-act'), a); return; }
+      var a = e.target.closest('[data-act]'); if (a) { e.stopPropagation(); actAsk(a.getAttribute('data-act'), a); return; }
       var t = e.target.closest('[data-tab]'); if (t) { tab = t.getAttribute('data-tab'); q = ''; draw(); return; }
       var mf = e.target.closest('[data-mf]'); if (mf) { mfilter = mf.getAttribute('data-mf'); draw(); return; }
       var u = e.target.closest('[data-u]'); if (u) { userSheet(findU(u.getAttribute('data-u'))); return; }

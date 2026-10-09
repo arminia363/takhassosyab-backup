@@ -30,7 +30,7 @@
     function match(it) {
       if (state.cat && String(it.cat || '').split(' ').indexOf(state.cat) < 0) return false;
       if (state.city && String(it.city || '').indexOf(state.city) < 0 && String(it.text).indexOf(state.city) < 0) return false;
-      if (state.q) { var q = TY.en(state.q).trim().toLowerCase(); var hay = TY.en((it.title || '') + ' ' + (it.text || '')).toLowerCase(); return q.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; }); }
+      if (state.q) { var q = TY.norm(state.q).trim(); var hay = TY.norm((it.title || '') + ' ' + (it.text || '')); return q.split(/\s+/).every(function (w) { return hay.indexOf(w) >= 0; }); }
       return true;
     }
     function card(it) {
@@ -47,6 +47,7 @@
     }
     function paint() {
       var rows = state.items.filter(match);
+      var fk = state.q + '|' + state.cat + '|' + state.city; if (fk !== state.fk) { state.fk = fk; state.lim = 60; }
       document.getElementById('count').textContent = rows.length ? TY.fa(rows.length) + (type === 'jobseeker' ? ' رزومه' : (isSaved ? ' مورد ذخیره‌شده' : ' آگهی')) : '';
       if (!rows.length) {
         listEl.classList.remove('cols');
@@ -57,11 +58,12 @@
         return;
       }
       listEl.classList.add('cols');
-      listEl.innerHTML = rows.slice(0, 120).map(card).join('');
+      listEl.innerHTML = rows.slice(0, state.lim).map(card).join('') + (rows.length > state.lim ? '<button class="btn outline block" id="more" style="grid-column:1/-1">نمایش بیشتر (' + TY.fa(rows.length - state.lim) + ' مورد دیگر)</button>' : '');
     }
     function find(id) { return state.items.filter(function (x) { return String(x.id) === String(id); })[0]; }
 
     listEl.addEventListener('click', function (e) {
+      if (e.target.closest('#more')) { state.lim += 60; paint(); return; }
       var art = e.target.closest('.item'); if (!art) return;
       var it = find(art.getAttribute('data-id')); if (!it) return;
       if (e.target.closest('[data-save]')) { var on = TY.saved.toggle(it); e.target.closest('[data-save]').setAttribute('aria-pressed', on); TY.toast(on ? 'ذخیره شد' : 'از ذخیره‌ها برداشته شد'); if (isSaved && !on) { state.items = TY.saved.all(); paint(); } return; }
@@ -83,7 +85,8 @@
       var phone = (TY.en(it.text).match(/(?:\+98|0)9\d{9}/) || [])[0];
       var isJob = it.type === 'employer';
       var foot = document.createElement('div'); foot.style.display = 'contents';
-      var primary = isJob ? '<button class="btn primary" data-apply>' + TY.ic('send', 'sm') + 'ارسال رزومه' + '</button>'
+      var sent = TY.store.get('sent', {})[it.id], mineIds = ((TY.cachedMe() || {}).mine || []).map(function (x) { return String(x.id); }), own = isJob && mineIds.indexOf(String(it.id)) >= 0;
+      var primary = own ? '<a class="btn primary" href="me.html#mine">' + TY.ic('edit', 'sm') + 'آگهی خودت · مدیریت</a>' : isJob ? '<button class="btn ' + (sent ? 'outline' : 'primary') + '" data-apply>' + TY.ic('send', 'sm') + (sent ? 'ارسال دوباره' : 'ارسال رزومه') + '</button>'
         : (phone ? '<a class="btn primary" href="tel:' + phone + '">' + TY.ic('phone', 'sm') + 'تماس</a>' : '');
       foot.innerHTML = primary + '<button class="btn outline" data-save2 aria-pressed="' + TY.saved.has(it.id) + '">' + TY.ic('bookmark', 'sm') + (TY.saved.has(it.id) ? 'ذخیره شده' : 'ذخیره') + '</button>';
       var head = '<button class="iconbtn" data-share aria-label="اشتراک">' + TY.ic('share', 'sm') + '</button>';
@@ -94,11 +97,12 @@
         cats.map(function (c) { return '<span class="badge">' + TY.esc(TY.catName(c)) + '</span>'; }).join('') + '</div>' +
         '<div class="posttext">' + TY.richText(it.text) + '</div>' +
         (it.msg ? '<a class="btn ghost sm mt4" target="_blank" rel="noopener" href="https://t.me/' + TY.CHANNEL + '/' + TY.esc(it.msg) + '">' + TY.ic('megaphone', 'xs') + 'دیدن در کانال</a>' : '') +
+        (isJob && sent && !own ? '<div class="banner brand mt3">' + TY.ic('check', 'sm') + '<div class="grow">رزومه‌ات را برای این آگهی فرستاده‌ای · ' + TY.ago(sent) + '</div></div>' : '') +
         (isJob && !it.dm ? '<p class="help mt3">این آگهی از کانال آمده؛ رزومه‌ات از طریق ادمین به کارفرما می‌رسد.</p>' : '');
-      var s = TY.sheet({title: it.title || (isJob ? 'آگهی' : 'رزومه'), body: body, footer: foot, headExtra: head});
+      var s = TY.sheet({title: it.title || (isJob ? 'آگهی' : 'رزومه'), body: body, footer: foot, headExtra: head, onClose: function () { try { if (/[?&]id=/.test(location.search)) history.replaceState(history.state, '', location.pathname); } catch (e) {} }});
       s.el.querySelector('[data-share]').onclick = function () { TY.share(it.title, location.origin + location.pathname + '?id=' + encodeURIComponent(it.id)); };
       foot.querySelector('[data-save2]').onclick = function () { var on = TY.saved.toggle(it); this.innerHTML = TY.ic('bookmark', 'sm') + (on ? 'ذخیره شده' : 'ذخیره'); TY.toast(on ? 'ذخیره شد' : 'برداشته شد'); paint(); };
-      var ap = foot.querySelector('[data-apply]'); if (ap) ap.onclick = function () { apply(it, s); };
+      var ap = foot.querySelector('[data-apply]'); if (ap) ap.onclick = function () { if (sent) TY.confirm('قبلاً فرستاده‌ای', 'رزومه‌ات را همین چند وقت پیش برای این آگهی فرستاده‌ای. دوباره بفرستم؟', 'ارسال دوباره').then(function (y) { if (y) apply(it, s); }); else apply(it, s); };
       try { history.replaceState(history.state, '', location.pathname + '?id=' + encodeURIComponent(it.id)); } catch (e) {}
     }
 
@@ -120,7 +124,7 @@
           if (!ok) return;
           b.style.opacity = .5;
           TY.api('submit', {type: 'jobseeker', vis: 'direct', target: it.id, title: r.title, text: r.text, tags: r.cat}).then(function (res) {
-            if (res && res.ok) { s.close(); TY.toast(it.dm ? 'رزومه برای کارفرما فرستاده شد' : 'رزومه برای ادمین فرستاده شد تا به کارفرما برساند'); }
+            if (res && res.ok) { var sm = TY.store.get('sent', {}); sm[it.id] = new Date(Date.now() + 210 * 60000).toISOString().slice(0, 19).replace('T', ' '); TY.store.set('sent', sm); s.close(); TY.toast(it.dm ? 'رزومه برای کارفرما فرستاده شد' : 'رزومه برای ادمین فرستاده شد تا به کارفرما برساند'); }
             else { b.style.opacity = 1; TY.toast(TY.errText(res), 'err'); }
           }).catch(function () { b.style.opacity = 1; TY.toast(TY.errText(), 'err'); });
         });
@@ -129,11 +133,11 @@
 
     var cached = isSaved ? TY.saved.all() : (TY.cachedFeed() || []).filter(function (x) { return x.type === type; });
     if (cached.length || isSaved) { state.items = cached; paintCats(); paint(); } else listEl.innerHTML = TY.skeleton(4);
-    var want = TY.qs('id');
+    var want = TY.qs('id'), meP = TY.session() ? TY.me() : Promise.resolve(null);
     source().then(function (items) {
       state.items = items; paintCats(); paint();
-      if (want) { var it = find(want); if (it) open(it); else TY.toast('این مورد دیگر فعال نیست', 'err'); want = null; }
+      if (want) { var w0 = want; want = null; Promise.resolve(TY.session() && !TY.cachedMe() ? meP : null).then(function () { var it = find(w0); if (it) open(it); else TY.toast('این مورد دیگر فعال نیست', 'err'); }); }
     }).catch(function () { if (!state.items.length) listEl.innerHTML = TY.empty('alert', 'اتصال برقرار نشد', 'اینترنت را چک کن و دوباره امتحان کن.', '<button class="btn primary" onclick="location.reload()">تلاش دوباره</button>'); });
-    if (TY.session()) { TY.me(); TY.startPolling(); }
+    if (TY.session()) TY.startPolling();
   };
 })();

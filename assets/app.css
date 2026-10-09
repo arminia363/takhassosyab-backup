@@ -342,3 +342,5 @@ hr.sep{border:0;height:1px;background:var(--line);margin:var(--s4) 0}
 .iconbtn.act.loading::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid currentColor;border-left-color:transparent;animation:spin .7s linear infinite}
 .iconbtn.spin svg{animation:spin .8s linear infinite}
 .in-app .hide-in-app{display:none!important}
+.offbar{position:fixed;z-index:70;top:calc(var(--top) + 8px + env(safe-area-inset-top,0px));left:0;right:0;margin-inline:auto;width:max-content;max-width:min(560px,calc(100vw - 24px));display:flex;gap:10px;align-items:center;padding:8px 8px 8px 14px;border-radius:999px;background:var(--text);color:var(--bg);font-size:var(--fs-sm);box-shadow:0 6px 24px rgba(0,0,0,.22)}
+.offbar button{flex:none;min-height:32px;padding:0 12px;border-radius:999px;border:0;background:rgba(255,255,255,.18);color:inherit;font:inherit;font-weight:700;cursor:pointer}

@@ -11,6 +11,8 @@
   var FA = '۰۱۲۳۴۵۶۷۸۹';
   TY.fa = function (s) { return String(s == null ? '' : s).replace(/\d/g, function (d) { return FA[d]; }); };
   TY.en = function (s) { return String(s == null ? '' : s).replace(/[۰-۹]/g, function (c) { return FA.indexOf(c); }).replace(/[٠-٩]/g, function (c) { return c.charCodeAt(0) - 1632; }); };
+  // search-friendly normal form: Arabic ي/ك → ی/ک, آ/أ/إ → ا, no ZWNJ/diacritics, ASCII digits, lowercase
+  TY.norm = function (s) { return TY.en(s).replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[آأإ]/g, 'ا').replace(/[\u064B-\u065F\u0670\u200c\u200d]/g, '').toLowerCase(); };
   TY.esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]; }); };
   TY.mobile = function (s) { var d = TY.en(s).replace(/\D/g, ''); var m = d.match(/^(?:0098|98|0)?(9\d{9})$/); return m ? '0' + m[1] : ''; };
   TY.parseDate = function (s) { if (!s) return null; var d = new Date(String(s).replace(' ', 'T') + '+03:30'); return isNaN(d) ? null : d; };
@@ -81,8 +83,8 @@
   function req(url, opt, ms) {
     return new Promise(function (res, rej) {
       var done = false, t = setTimeout(function () { if (!done) { done = true; rej(new Error('timeout')); } }, ms || 25000);
-      fetch(url, opt).then(function (r) { return r.json(); }).then(function (j) { if (!done) { done = true; clearTimeout(t); res(j); } })
-        .catch(function (e) { if (!done) { done = true; clearTimeout(t); rej(e); } });
+      fetch(url, opt).then(function (r) { return r.json(); }).then(function (j) { if (TY.netState) TY.netState(true); if (!done) { done = true; clearTimeout(t); res(j); } })
+        .catch(function (e) { if (TY.netState) TY.netState(false); if (!done) { done = true; clearTimeout(t); rej(e); } });
     });
   }
   TY.api = function (action, data) {
@@ -96,7 +98,7 @@
 
   // backend version gate: the new UI needs Code.gs v2. Until Armin deploys it, writes are disabled.
   TY.backend = function () {
-    var c = TY.store.get('be'); if (c && Date.now() - c.t < 120000) return Promise.resolve(c.v);
+    var c = TY.store.get('be'); if (c && Date.now() - c.t < (c.v >= 2 ? 1800000 : 120000)) return Promise.resolve(c.v);
     return TY.get({action: 'ping'}).then(function (r) { var v = (r && r.v) || 1; if (r && r.bot) TY.BOT = r.bot; TY.store.set('be', {v: v, t: Date.now()}); return v; })
       .catch(function () { return c ? c.v : 0; });
   };
@@ -115,7 +117,7 @@
   TY.logout = function (silent) {
     var s = TY.session();
     if (s && !silent) TY.api('profile', {logout: true}).catch(function () {});
-    ['s', 'me', 'seen'].forEach(TY.store.del); bridgeToken('');
+    ['s', 'me', 'seen', 'inv_ok', 'sent', 'lastsub', 'draft_employer', 'draft_jobseeker', 'last_employer', 'last_jobseeker'].forEach(TY.store.del); bridgeToken('');
     if (!silent) location.href = 'enter.html';
   };
   TY.me = function () {
@@ -222,7 +224,7 @@
     var e = (r && (r.error || r.detail)) || 'net';
     return ({auth: 'دوباره وارد شو', key: 'رمز ادمین نادرست است', mobile: 'شماره موبایل درست نیست', name: 'نام را بنویس', text: 'متن کامل نیست', rate: 'امروز زیاد ارسال کرده‌ای؛ کمی بعد دوباره امتحان کن',
       target: 'این آگهی دیگر فعال نیست', owner: 'مالک اصلی را نمی‌شود برداشت', status: 'حساب تو فعال نیست', telegram: 'ارسال به تلگرام ناموفق بود: ' + ((r && r.detail) || ''), code: 'کد درست نیست', tries: 'تلاش زیاد؛ ۱۰ دقیقه بعد دوباره امتحان کن',
-      nouser: 'با این شماره عضوی پیدا نشد', blocked: 'این حساب مسدود است', expired: 'زمان ورود تمام شد؛ دوباره امتحان کن', net: 'اتصال برقرار نشد؛ دوباره امتحان کن', network: 'اتصال برقرار نشد؛ دوباره امتحان کن', oldserver: 'نسخه‌ی جدید سرور هنوز فعال نشده است', timeout: 'سرور دیر جواب داد؛ دوباره امتحان کن'})[e] || ('خطا: ' + e);
+      nouser: 'با این شماره عضوی پیدا نشد', blocked: 'این حساب مسدود است', expired: 'زمان ورود تمام شد؛ دوباره امتحان کن', server: 'سرور مشغول است؛ کمی بعد دوباره امتحان کن', notfound: 'این مورد دیگر وجود ندارد', op: 'این کار الان ممکن نیست', action: 'این کار الان ممکن نیست', net: 'اتصال برقرار نشد؛ دوباره امتحان کن', network: 'اتصال برقرار نشد؛ دوباره امتحان کن', oldserver: 'نسخه‌ی جدید سرور هنوز فعال نشده است', timeout: 'سرور دیر جواب داد؛ دوباره امتحان کن'})[e] || 'مشکلی پیش آمد؛ کمی بعد دوباره امتحان کن';
   };
 
   /* ---------------- sheet ---------------- */
@@ -238,13 +240,15 @@
     if (o.footer) { var f = sh.querySelector('.sh-f'); if (typeof o.footer === 'string') f.innerHTML = o.footer; else f.appendChild(o.footer); }
     document.body.appendChild(scrim); document.body.appendChild(sh);
     var prev = document.body.style.overflow; document.body.style.overflow = 'hidden';
-    requestAnimationFrame(function () { scrim.classList.add('on'); sh.classList.add('on'); });
+    var opener = document.activeElement; sh.setAttribute('tabindex', '-1'); sh.style.outline = 'none';
+    requestAnimationFrame(function () { scrim.classList.add('on'); sh.classList.add('on'); try { sh.focus({preventScroll: true}); } catch (e) {} });
     var api = {el: sh, body: b, close: close, _teardown: teardown}, closed = false;
     function teardown() {
       if (closed) return; closed = true;
       scrim.classList.remove('on'); sh.classList.remove('on'); document.body.style.overflow = prev;
       setTimeout(function () { scrim.remove(); sh.remove(); }, 300);
       document.removeEventListener('keydown', esc);
+      try { if (opener && opener.focus && document.body.contains(opener)) opener.focus({preventScroll: true}); } catch (e) {}
       if (o.onClose) o.onClose();
     }
     function close() { if (closed) return; var i = SHEETS.indexOf(api); if (i >= 0) SHEETS.splice(i, 1); teardown(); spare++; setTimeout(function () { if (spare > 0) { spare--; skipPop++; history.back(); } }, 60); }
@@ -284,7 +288,7 @@
     o = o || {};
     var top = document.createElement('header'); top.className = 'topbar';
     var lead = o.back ? '<button class="iconbtn" data-back aria-label="بازگشت">' + TY.ic('back') + '</button>' : '';
-    var title = o.brand ? '<a class="brand" href="enter.html"><span class="mark">' + TY.ic('mark') + '</span><b>تخصص‌یاب</b></a>' : '<h1>' + TY.esc(o.title || '') + '</h1>';
+    var title = o.brand ? '<a class="brand" href="enter.html"><span class="mark">' + TY.ic('mark') + '</span><b>تخصص‌یاب</b></a>' : (o.title ? '<h1>' + TY.esc(o.title) + '</h1>' : '<div style="flex:1"></div>');
     var trail = (o.actions || '') + (o.bell !== false && TY.session() ? '<a class="iconbtn" href="inbox.html" aria-label="اعلان‌ها">' + TY.ic('bell') + '<span class="dot" hidden></span></a>' : '');
     top.innerHTML = lead + title + trail;
     document.body.insertBefore(top, document.body.firstChild);
@@ -391,6 +395,22 @@
     pollT = setInterval(function () { if (document.visibilityState === 'visible') TY.me().then(function (r) { if (cb && r) cb(r); }); }, 45000);
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') TY.me().then(function (r) { if (cb && r) cb(r); }); });
   };
+
+  /* ---------------- connection banner: stale cached data is fine, but say so ---------------- */
+  (function () {
+    var bar = null, wasOff = false;
+    TY.netState = function (ok) {
+      if (!document.body) return;
+      if (!ok && !bar && document.visibilityState === 'visible') {
+        wasOff = true; bar = document.createElement('div'); bar.className = 'offbar'; bar.setAttribute('role', 'status');
+        bar.innerHTML = '<span>اتصال برقرار نیست؛ آخرین اطلاعات ذخیره‌شده را می‌بینی</span><button type="button">تلاش دوباره</button>';
+        bar.querySelector('button').onclick = function () { location.reload(); };
+        document.body.appendChild(bar);
+      } else if (ok && bar) { bar.remove(); bar = null; if (wasOff) { wasOff = false; TY.toast('دوباره آنلاین شدی'); } }
+    };
+    window.addEventListener('offline', function () { TY.netState(false); });
+    window.addEventListener('online', function () { TY.netState(true); if (TY.session()) TY.me(); });
+  })();
 
   /* ---------------- boot ---------------- */
   if (window.Android || /TakhassosyabApp/.test(navigator.userAgent)) document.documentElement.classList.add('in-app');
