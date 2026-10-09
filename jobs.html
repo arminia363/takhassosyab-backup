@@ -1,29 +1,24 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>آگهی‌های استخدام</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;white-space:pre-wrap;line-height:1.7}button{background:#229ED9;color:#fff;border:0;border-radius:10px;padding:8px 12px}a{color:#8fd0ff}</style></head>
-<body><div class="wrap"><h1>آگهی‌های استخدام</h1><p>برای همه باز است.</p><div id="box">در حال خواندن...</div><p><a href="favorites.html">علاقه‌مندی‌ها</a> · <a href="enter.html">منو</a></p></div>
-<script>
-var END="https://script.google.com/macros/s/AKfycby-KF2DQ45TzhqLISN5Xcy0_VOd9-UV63HEh6-6GwlLq7bqxPcSibSgB2ddIdsbBFAU/exec";
-function favs(){try{return JSON.parse(localStorage.getItem("ty_fav")||"[]");}catch(e){return [];}}
-function draw(rows){
-  var f=favs();
-  document.getElementById("box").innerHTML=rows.length?rows.map(function(r,i){
-    var on=f.some(function(x){return x.id===r.id;});
-    return "<div class=\"card\"><b>"+(r.title||"آگهی")+"</b><br>"+(r.text||"")+"<br><button data-i=\""+i+"\">"+(on?"در علاقه‌مندی است":"افزودن به علاقه‌مندی")+"</button></div>";
-  }).join(""):"<p>هنوز آگهی مشترکی نیست.</p>";
-  var bs=document.querySelectorAll("button");
-  for(var n=0;n<bs.length;n++) bs[n].onclick=function(){
-    var r=rows[this.getAttribute("data-i")];
-    var list=favs().filter(function(x){return x.id!==r.id;});
-    if(!favs().some(function(x){return x.id===r.id;})) list.unshift(r);
-    localStorage.setItem("ty_fav", JSON.stringify(list.slice(0,100)));
-    draw(rows);
-  };
-}
-fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
-  var rows=(d.items||[]).filter(function(r){return r.type!=="jobseeker" && r.deleted!=="بله";});
-  var seen={}, uniq=[];
-  rows.forEach(function(r){var k=(r.title||"")+"|"+(r.text||""); if(seen[k]) return; seen[k]=1; uniq.push(r);});
-  draw(uniq);
-}).catch(function(){document.getElementById("box").textContent="فهرست مشترک هنوز از سرور خوانده نمی‌شود."});
-</script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>آگهی‌های استخدام | تخصص‌یاب</title>
+<meta name="description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies">
+<meta name="theme-color" content="#F5F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="آگهی‌های استخدام | تخصص‌یاب"><meta property="og:description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies"><meta property="og:image" content="https://takhassosyab.ir/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script><script src="assets/feed.js?v=2610090127" defer></script>
+</head>
+<body>
+<main></main>
+<script>document.addEventListener('DOMContentLoaded',function(){var TY=window.TY,$=TY.$;
+TY.feedPage({type:'employer',title:'آگهی‌های استخدام',nav:'jobs'});
+});</script>
+</body>
+</html>

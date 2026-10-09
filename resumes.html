@@ -1,11 +1,24 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>رزومه‌ها</title>
-<style>body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;white-space:pre-wrap;line-height:1.7}a{color:#8fd0ff}</style></head>
-<body><div class="wrap"><h1>رزومه‌های کارجویان</h1><p>فقط رزومه‌ای که صاحبش اجازه داده.</p><div id="box">در حال خواندن...</div><p><a href="enter.html">منو</a></p></div>
-<script>
-var END="https://script.google.com/macros/s/AKfycby-KF2DQ45TzhqLISN5Xcy0_VOd9-UV63HEh6-6GwlLq7bqxPcSibSgB2ddIdsbBFAU/exec";
-fetch(END+"?action=list").then(function(r){return r.json()}).then(function(d){
-  var rows=(d.items||[]).filter(function(r){return r.type==="jobseeker" && r.public==="بله" && r.deleted!=="بله";});
-  document.getElementById("box").innerHTML=rows.length?rows.map(function(r){return "<div class=\"card\"><b>"+(r.title||"رزومه")+"</b><br>"+(r.text||"")+"</div>";}).join(""):"<p>رزومه عمومی هنوز نیست.</p>";
-}).catch(function(){document.getElementById("box").textContent="فهرست مشترک هنوز از سرور خوانده نمی‌شود."});
-</script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>رزومه‌ها | تخصص‌یاب</title>
+<meta name="description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies">
+<meta name="theme-color" content="#F5F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="رزومه‌ها | تخصص‌یاب"><meta property="og:description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies"><meta property="og:image" content="https://takhassosyab.ir/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script><script src="assets/feed.js?v=2610090127" defer></script>
+</head>
+<body>
+<main></main>
+<script>document.addEventListener('DOMContentLoaded',function(){var TY=window.TY,$=TY.$;
+TY.feedPage({type:'jobseeker',title:'رزومه‌ها',nav:'resumes'});
+});</script>
+</body>
+</html>

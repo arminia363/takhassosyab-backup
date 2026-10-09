@@ -1,86 +1,24 @@
-<!DOCTYPE html>
-<html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>پنل ادمین</title>
-<style>
-body{margin:0;background:#0f1720;color:#fff;font-family:Tahoma,sans-serif}
-.wrap{width:100%;box-sizing:border-box;padding:16px 12px 40px}
-.card{background:#17212b;border-radius:14px;padding:14px;margin:10px 0;line-height:1.7}
-.bad{border:1px solid #e0433c}.ok{border:1px solid #12a36b}
-button,input,textarea{border:0;border-radius:10px;padding:10px}
-input,textarea{width:100%;box-sizing:border-box;margin:8px 0}
-button{background:#229ED9;color:#fff;margin:4px}
-.del{background:#e0433c}
-small{color:#9fb0c0}
-</style></head>
-<body><div class="wrap">
-<h1>پنل هوشمند ادمین</h1>
-<input id="pass" type="password" placeholder="رمز ادمین">
-<button id="go">ورود</button>
-<div id="box"></div><h2>عضویت</h2><p>درخواست‌ها و اعضای تأییدشده همین‌جا هستند.</p><div id="members"></div><h2>افزودن آگهی تلگرامی</h2><input id="atitle" placeholder="عنوان"><textarea id="atext" placeholder="متن آگهی" style="width:100%;min-height:120px"></textarea><button id="add" style="background:#12a36b">افزودن به برنامه</button>
-</div>
-<script>
-var END="https://script.google.com/macros/s/AKfycby-KF2DQ45TzhqLISN5Xcy0_VOd9-UV63HEh6-6GwlLq7bqxPcSibSgB2ddIdsbBFAU/exec";
-var KEY="";
-function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];}).replace(/\n/g,"<br>");}
-function phone(t){var m=String(t||"").match(/09\d{9}/);return m?m[0]:"";}
-function post(obj){obj.key=KEY;return fetch(END,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(obj)}).then(function(r){return r.json();});}
-function flags(r,all){
-  var f=[];
-  if(!r.title) f.push("عنوان ندارد");
-  if(!r.text || String(r.text).length<20) f.push("متن ناقص است");
-  var p=phone(r.text);
-  if(!p) f.push("شماره تماس ندارد");
-  if(p && all.filter(function(x){return phone(x.text)===p;}).length>1) f.push("شماره تکراری");
-  if(r.type==="jobseeker" && r.public!=="بله") f.push("رزومه اجازه انتشار ندارد");
-  return f;
-}
-function card(r,live,pending){
-  var f=flags(r,live);
-  return "<div class=\"card "+(pending?"bad":"ok")+"\"><b>"+esc(r.title||r.type||"مورد")+"</b><br><small>"+(r.type==="jobseeker"?"رزومه":"آگهی استخدام")+"</small><p>"+esc(r.text)+"</p><p><small>"+(f.join(" · ")||"سالم")+"</small></p>"+
-    (pending?"<button class=\"apv\" style=\"background:#12a36b\" data-id=\""+esc(r.id)+"\">✅ تأیید و انتشار در کانال</button>":"")+
-    "<button class=\"del\" data-id=\""+esc(r.id)+"\">"+(pending?"❌ رد و حذف":"حذف برای همه")+"</button></div>";
-}
-function draw(rows){
-  var live=rows.filter(function(r){return r.deleted!=="بله" && r.type!=="membership";});
-  var pend=live.filter(function(r){return r.status==="pending";});
-  var pub=live.filter(function(r){return r.status!=="pending";});
-  var html="<h2>⏳ در انتظار تأیید ("+pend.length+")</h2>"+(pend.map(function(r){return card(r,live,true);}).join("")||"<p>آگهی جدیدی در انتظار نیست.</p>");
-  html+="<h2>📢 منتشرشده ("+pub.length+")</h2>"+pub.map(function(r){return card(r,live,false);}).join("");
-  document.getElementById("box").innerHTML=html;
-  var a=document.querySelectorAll(".apv");
-  for(var i=0;i<a.length;i++) a[i].onclick=function(){
-    var b=this; b.disabled=true; b.textContent="در حال انتشار...";
-    post({action:"approve",id:b.getAttribute("data-id")}).then(function(d){
-      if(d.ok){b.textContent="✅ در کانال منتشر شد"; setTimeout(load,1200);}
-      else{b.disabled=false; b.textContent="خطا: "+(d.detail||d.error||"نامشخص")+" (دوباره بزن)";}
-    }).catch(function(){b.disabled=false; b.textContent="خطای اتصال (دوباره بزن)";});
-  };
-  var d=document.querySelectorAll(".del");
-  for(var j=0;j<d.length;j++) d[j].onclick=function(){
-    if(!confirm("این مورد برای همه حذف شود؟ (اگر در کانال منتشر شده، از کانال هم پاک می‌شود)")) return;
-    var b=this; post({action:"delete",id:b.getAttribute("data-id")}).then(function(){b.parentNode.remove();}).catch(function(){alert("حذف ناموفق بود");});
-  };
-}
-function drawMembers(items){
-  var rows=items.filter(function(r){return r.type==="membership" && r.public!=="تأیید" && r.deleted!=="بله";});
-  var approved=items.filter(function(r){return r.type==="membership" && r.public==="تأیید" && r.deleted!=="بله";});
-  document.getElementById("members").innerHTML="<h3>در انتظار</h3>"+(rows.map(function(r){return "<div class=\"card bad\"><b>"+esc(r.title||r.id)+"</b><p>"+esc(r.text)+"</p><button data-m=\""+esc(r.id)+"\" style=\"background:#12a36b\">تأیید عضویت</button></div>";}).join("")||"<p>درخواست جدیدی نیست.</p>")+"<h3>تأییدشده</h3>"+(approved.map(function(r){return "<div class=\"card ok\"><b>"+esc(r.title||r.id)+"</b><p>عضو تأییدشده</p></div>";}).join("")||"<p>عضو تأییدشده‌ای نیست.</p>");
-  var bs=document.querySelectorAll("[data-m]");
-  for(var i=0;i<bs.length;i++) bs[i].onclick=function(){
-    var b=this; post({action:"save", id:b.getAttribute("data-m"), type:"membership", title:"تأیید", text:b.getAttribute("data-m"), public:"تأیید"}).then(function(){b.parentNode.remove();});
-  };
-}
-function load(){
-  document.getElementById("box").textContent="در حال بررسی...";
-  fetch(END+"?action=admin&key="+encodeURIComponent(KEY)).then(function(r){return r.json();}).then(function(d){
-    if(!d.ok){document.getElementById("box").textContent="رمز نادرست است";KEY="";try{localStorage.removeItem("ty_admin_key");}catch(e){}return;}
-    try{localStorage.setItem("ty_admin_key",KEY);}catch(e){}
-    draw(d.items||[]); drawMembers(d.items||[]);
-  }).catch(function(){document.getElementById("box").textContent="خواندن فهرست ناموفق بود";});
-}
-document.getElementById("add").onclick=function(){
-  if(!KEY){alert("اول رمز را بزن و وارد شو");return;}
-  post({action:"save", id:String(Date.now()), type:"employer", title:document.getElementById("atitle").value, text:document.getElementById("atext").value, public:"بله"}).then(function(d){alert(d.ok?"به فهرست برنامه اضافه شد":"ذخیره نشد");load();});
-};
-document.getElementById("go").onclick=function(){KEY=document.getElementById("pass").value.trim();load();};
-try{var k=localStorage.getItem("ty_admin_key");if(k){KEY=k;document.getElementById("pass").value=k;load();}}catch(e){}
-</script></body></html>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>پنل ادمین | تخصص‌یاب</title>
+<meta name="description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies">
+<meta name="theme-color" content="#F5F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="پنل ادمین | تخصص‌یاب"><meta property="og:description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies"><meta property="og:image" content="https://takhassosyab.ir/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script><script src="assets/admin.js?v=2610090127" defer></script>
+</head>
+<body>
+<main class="nonav"></main>
+<script>document.addEventListener('DOMContentLoaded',function(){var TY=window.TY,$=TY.$;
+TY.adminPage();
+});</script>
+</body>
+</html>

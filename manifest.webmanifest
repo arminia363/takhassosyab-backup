@@ -1,15 +1,23 @@
 {
-  "name": "تخصص‌یاب",
+  "name": "تخصص‌یاب — آگهی استخدام و رزومه",
   "short_name": "تخصص‌یاب",
-  "start_url": "/",
-  "scope": "/",
+  "description": "ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies",
+  "start_url": "enter.html?src=pwa",
+  "scope": "./",
+  "id": "/enter.html",
   "display": "standalone",
   "dir": "rtl",
   "lang": "fa",
-  "background_color": "#0f1720",
-  "theme_color": "#229ED9",
+  "background_color": "#F5F4F1",
+  "theme_color": "#0A7A5A",
   "icons": [
     {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
-    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ],
+  "shortcuts": [
+    {"name": "آگهی‌ها", "url": "jobs.html"},
+    {"name": "ثبت آگهی", "url": "employer.html"},
+    {"name": "ساخت رزومه", "url": "jobseeker.html"}
   ]
 }

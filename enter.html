@@ -1,51 +1,85 @@
-﻿<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>تخصص‌یاب | ثبت آگهی</title>
-<style>
-body{margin:0;font-family:Tahoma,sans-serif;background:#0f1a24;color:#fff}
-.c{width:100%;box-sizing:border-box;padding:28px 14px 40px}
-h1{font-size:2em;margin:.2em;text-align:center}p{color:#b8c7d6;text-align:center}
-a.b{display:block;margin:12px 0;padding:22px 12px;border-radius:14px;color:#fff;text-decoration:none;font-size:1.35em;font-weight:bold;text-align:center}
-.e{background:#229ED9}.m{background:#7b4dd6}.j{background:#12a36b}.s{font-size:.75em;font-weight:normal;opacity:.9;display:block}.t{color:#6cc4f0}
-</style></head><body><div class="c">
-<h1>تخصص‌یاب</h1><p>ثبت رایگان آگهی استخدام و کارجو</p>
-<a class="b e" href="employer.html">ثبت آگهی استخدام</a>
-<a class="b j" href="jobseeker.html">ثبت رزومه کارجو</a>
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>تخصص‌یاب | آگهی استخدام و رزومه</title>
+<meta name="description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies">
+<meta name="theme-color" content="#F5F4F1" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0E0F10" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="تخصص‌یاب | آگهی استخدام و رزومه"><meta property="og:description" content="تخصص‌یاب — ثبت رایگان آگهی استخدام و رزومه، با انتشار در کانال @JobVacencies"><meta property="og:image" content="https://takhassosyab.ir/icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="assets/app.css?v=2610090127">
+<script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script src="assets/data.js?v=2610090127" defer></script><script src="assets/core.js?v=2610090127" defer></script>
+</head>
+<body>
+<main></main>
+<script>document.addEventListener('DOMContentLoaded',function(){var TY=window.TY,$=TY.$;
 
-<p><a class="t" href="https://t.me/JobVacencies">@JobVacencies</a></p>
-<a class="b e" href="jobs.html">آگهی‌های استخدام</a><a class="b m" href="favorites.html">علاقه‌مندی‌ها</a>
-<a class="b j" href="resumes.html">رزومه‌های کارجویان</a>
-<a class="b m" href="admin.html">آیکون ادمین<span class="s">ورود پنل و تست نسخه کاربر</span></a></div>
-<div id="vip" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:16px">
-  <div style="background:#17212b;border-radius:16px;padding:16px;max-width:420px;width:100%">
-    <b id="vipTitle">آگهی ویژه</b>
-    <p id="vipText"></p>
-    <a id="vipLink" class="b e" href="jobs.html">مشاهده</a>
-    <button id="vipClose" style="margin-top:8px;background:#334;color:#fff;border:0;border-radius:10px;padding:10px;width:100%">بستن</button>
-  </div>
-</div>
-<script>
-(function(){
-  var END="https://script.google.com/macros/s/AKfycby-KF2DQ45TzhqLISN5Xcy0_VOd9-UV63HEh6-6GwlLq7bqxPcSibSgB2ddIdsbBFAU/exec?action=list";
-  var role="";
-  try{var u=JSON.parse(localStorage.getItem("ty_user")||"{}"); role=u.role||localStorage.getItem("ty_role")||"";}catch(e){}
-  fetch(END).then(function(r){return r.json()}).then(function(d){
-    var rows=(d.items||[]).filter(function(r){return r.deleted!=="بله" && /vip|ویژه/i.test((r.title||"")+" "+(r.text||""));});
-    var item=null, href="jobs.html", title="آگهی ویژه", text="";
-    var interest=localStorage.getItem("ty_interest")||"";
-    if(role.indexOf("کارجو")>=0 || role==="jobseeker"){
-      item=rows.filter(function(r){return r.type!=="jobseeker" && (!interest || (r.title+" "+r.text).indexOf(interest)>=0);})[0];
-      text=item?"کار مناسب تو احتمالاً این است. برو چک کن: "+(item.title||"آگهی ویژه"):"";
-    } else if(role.indexOf("کارفرما")>=0 || role==="employer"){
-      item=rows.filter(function(r){return r.type==="jobseeker" && r.public==="بله";})[0];
-      href="resumes.html"; title="رزومه ویژه";
-      text=item?"یک رزومه ویژه آمده. برو چک کن: "+(item.title||"رزومه"):"";
-    }
-    if(!item) return;
-    document.getElementById("vipTitle").textContent=title;
-    document.getElementById("vipText").textContent=text;
-    document.getElementById("vipLink").href=href;
-    document.getElementById("vip").style.display="flex"; if(window.Android&&Android.notifyUser) Android.notifyUser(title,text);
-  }).catch(function(){});
-  document.getElementById("vipClose").onclick=function(){document.getElementById("vip").style.display="none";};
-})();
-</script>
-</body></html>
+TY.shell({brand:true, nav:'home'});
+var main=$('main'), s=TY.session();
+function rowItem(it){return '<a class="row" href="'+(it.type==='jobseeker'?'resumes.html':'jobs.html')+'?id='+encodeURIComponent(it.id)+'"><span class="tile-ic">'+TY.ic(it.type==='jobseeker'?'resume':'briefcase','sm')+'</span><div class="grow"><div class="t">'+TY.esc(it.title||'آگهی')+'</div><div class="s">'+TY.esc([it.city,TY.ago(it.created)].filter(Boolean).join(' · '))+'</div></div>'+TY.ic('fwd','sm chev')+'</a>';}
+function skRows(n){var h='';for(var i=0;i<n;i++)h+='<div class="row"><span class="tile-ic sk"></span><div class="grow"><div class="sk" style="height:13px;width:60%"></div><div class="sk" style="height:11px;width:35%;margin-top:8px"></div></div></div>';return '<div class="list">'+h+'</div>';}
+function fillLatest(el,items,n){el.innerHTML=items.length?'<div class="list">'+items.slice(0,n).map(rowItem).join('')+'</div>':TY.empty('briefcase','هنوز موردی نیست','');}
+function guest(){
+  main.innerHTML='<section class="hero"><div class="eyebrow">کانال آگهی‌های استخدام @JobVacencies</div>'+
+   '<h1 class="h1 mt2">هر کاری، آدمِ خودش را دارد.</h1>'+
+   '<p class="muted mt3" style="max-width:36ch">آگهی استخدام یا رزومه‌ات را رایگان ثبت کن. بعد از تأیید ادمین در کانال و برنامه منتشر می‌شود و آدم‌های همان رشته خبردار می‌شوند.</p>'+
+   '<div class="btnrow mt6" style="max-width:420px"><a class="btn primary lg" href="register.html">ثبت‌نام رایگان</a><a class="btn outline lg" href="register.html?login=1">ورود</a></div>'+
+   '<div class="stat"><div><b class="num" id="nAds">–</b><span>آگهی فعال</span></div><div><b class="num" id="nCv">–</b><span>رزومه‌ی عمومی</span></div><div><b class="num">۱٫۹ هزار</b><span>عضو کانال</span></div></div></section>'+
+   '<div class="section-h"><h2>تازه‌ترین آگهی‌ها</h2><a href="jobs.html">همه'+TY.ic('fwd','xs')+'</a></div><div id="latest">'+skRows(4)+'</div>'+
+   '<div class="section-h"><h2>شروع کن</h2></div><div class="list">'+
+   '<a class="row" href="employer.html"><span class="tile-ic brand">'+TY.ic('building','sm')+'</span><div class="grow"><div class="t">ثبت آگهی استخدام</div><div class="s">برای کارفرماها · رایگان</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<a class="row" href="jobseeker.html"><span class="tile-ic brand">'+TY.ic('resume','sm')+'</span><div class="grow"><div class="t">ساخت رزومه</div><div class="s">برای کارجوها · در ۵ دقیقه</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<a class="row hide-in-app" href="app.html"><span class="tile-ic">'+TY.ic('download','sm')+'</span><div class="grow"><div class="t">نصب برنامه‌ی اندروید</div><div class="s">اعلان فوری آگهی‌ها و رزومه‌های مرتبط</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<a class="row" href="https://t.me/JobVacencies" target="_blank" rel="noopener"><span class="tile-ic">'+TY.ic('megaphone','sm')+'</span><div class="grow"><div class="t">کانال تلگرام</div><div class="s" dir="ltr" style="text-align:right">@JobVacencies</div></div>'+TY.ic('external','sm chev')+'</a></div>';
+  var cached=TY.cachedFeed(); if(cached) paintFeed(cached);
+  TY.feed().then(paintFeed).catch(function(){});
+  function paintFeed(items){var ads=items.filter(function(x){return x.type==='employer'}),cv=items.filter(function(x){return x.type==='jobseeker'});
+    $('#nAds').textContent=TY.fa(ads.length);$('#nCv').textContent=TY.fa(cv.length);fillLatest($('#latest'),ads,5);}
+}
+function pending(me){
+  var u=me.user, tg=u.tg;
+  main.innerHTML='<section class="hero"><div class="eyebrow">سلام '+TY.esc(u.name||'')+'</div><h1 class="h2 mt1">عضویتت در حال بررسی است</h1><p class="muted mt2">ادمین‌ها معمولاً در چند ساعت درخواست را بررسی می‌کنند. نتیجه را همین‌جا'+(tg?' و در تلگرام':'')+' می‌بینی.</p></section>'+
+   '<div class="card"><ol class="timeline">'+
+   '<li class="done"><span class="st">'+TY.ic('check','xs')+'</span><div><div class="tt">ثبت‌نام</div><div class="ts num" dir="ltr" style="text-align:right">'+TY.fa(u.mobile)+'</div></div></li>'+
+   '<li class="'+(tg?'done':'now')+'"><span class="st">'+(tg?TY.ic('check','xs'):'۲')+'</span><div class="grow"><div class="tt">اتصال تلگرام</div><div class="ts">'+(tg?'وصل شد'+(u.tg_user?' · @'+TY.esc(u.tg_user):''):'لینک کانال و خبر تأیید را فوری در تلگرام بگیر.')+'</div>'+(tg?'':'<a class="btn primary sm mt2" target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'">'+TY.ic('send','xs')+'اتصال به ربات</a>')+'</div></li>'+
+   '<li class="now"><span class="st">۳</span><div><div class="tt">تأیید ادمین</div><div class="ts hstack" style="gap:8px"><span class="pulse"></span>در انتظار</div></div></li></ol></div>'+
+   '<div class="section-h"><h2>تا آن موقع</h2></div><div class="list">'+
+   '<a class="row" href="jobs.html"><span class="tile-ic">'+TY.ic('briefcase','sm')+'</span><div class="grow"><div class="t">آگهی‌ها را ببین</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<a class="row" href="'+(u.role==='employer'?'employer.html':'jobseeker.html')+'"><span class="tile-ic brand">'+TY.ic(u.role==='employer'?'building':'resume','sm')+'</span><div class="grow"><div class="t">'+(u.role==='employer'?'آگهی‌ات را آماده کن':'رزومه‌ات را بساز')+'</div><div class="s">همراه عضویت بررسی می‌شود</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
+   '<a class="row" href="'+TY.GROUP+'" target="_blank" rel="noopener"><span class="tile-ic">'+TY.ic('users','sm')+'</span><div class="grow"><div class="t">گروه گفتگوی تلگرام</div></div>'+TY.ic('external','sm chev')+'</a></div>';
+}
+function rejected(me){main.innerHTML=TY.empty('alert','درخواست عضویت تأیید نشد','اگر فکر می‌کنی اشتباه شده، به ادمین پیام بده.','<a class="btn primary" href="https://t.me/'+TY.SUPPORT+'" target="_blank" rel="noopener">پیام به ادمین</a>');}
+function approved(me){
+  var u=me.user, emp=u.role==='employer', feed=TY.cachedFeed()||[];
+  var h='<section style="padding:16px 0 4px"><div class="between"><div><div class="eyebrow">'+(emp?'کارفرما':'کارجو')+'</div><h1 class="h2">سلام، '+TY.esc((u.name||'').split(' ')[0])+'</h1></div></div></section>';
+  if(u.invite && !TY.store.get('inv_ok')) h+='<div class="banner brand mt3">'+TY.ic('megaphone','sm')+'<div class="grow"><b>لینک اختصاصی ورود به کانال</b>عضویتت تأیید شد. این لینک یک‌بارمصرف مخصوص توست.<div class="btnrow mt2"><a class="btn primary sm" style="flex:0 0 auto" target="_blank" rel="noopener" href="'+TY.esc(u.invite)+'" id="invGo">ورود به کانال</a><button class="btn ghost sm" style="flex:0 0 auto" id="invX">بعداً</button></div></div></div>';
+  if(!u.tg) h+='<div class="banner info mt3">'+TY.ic('bell','sm')+'<div class="grow"><b>اعلان فوری روی گوشی</b>تلگرامت را وصل کن تا '+(emp?'رزومه‌های مرتبط':'آگهی‌های مرتبط')+' همان لحظه خبرت کنند.<div><a class="btn primary sm" target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'">'+TY.ic('send','xs')+'اتصال تلگرام</a></div></div></div>';
+  h+='<div class="grid2 mt4">'+
+     '<a class="card" href="'+(emp?'employer.html':'jobseeker.html')+'" style="color:inherit"><span class="tile-ic brand">'+TY.ic(emp?'building':'resume','sm')+'</span><div class="h3 mt3">'+(emp?'ثبت آگهی':'ساخت رزومه')+'</div><div class="xs muted">'+(emp?'بعد از تأیید، در کانال':'انتشار یا ارسال مستقیم')+'</div></a>'+
+     '<a class="card" href="'+(emp?'inbox.html?tab=inbox':'jobs.html')+'" style="color:inherit"><span class="tile-ic">'+TY.ic(emp?'inbox':'briefcase','sm')+'</span><div class="h3 mt3">'+(emp?'رزومه‌های دریافتی':'آگهی‌ها')+'</div><div class="xs muted num">'+(emp?TY.fa((me.inbox||[]).length)+' رزومه':TY.fa(feed.filter(function(x){return x.type==='employer'}).length)+' آگهی فعال')+'</div></a></div>';
+  h+='<div class="section-h"><h2>مرتبط با تو</h2><a href="'+(emp?'resumes.html':'jobs.html')+'">همه'+TY.ic('fwd','xs')+'</a></div><div id="rel">'+skRows(3)+'</div>';
+  if((me.mine||[]).length) h+='<div class="section-h"><h2>ارسال‌های من</h2><a href="me.html#mine">همه'+TY.ic('fwd','xs')+'</a></div><div class="list">'+me.mine.slice(0,3).map(function(m){return '<a class="row" href="me.html#mine"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+'</div></div>'+TY.statusBadge(m.status)+'</a>';}).join('')+'</div>';
+  main.innerHTML=h;
+  var ig=$('#invGo'),ix=$('#invX'); if(ig) ig.onclick=function(){TY.store.set('inv_ok',1);}; if(ix) ix.onclick=function(){TY.store.set('inv_ok',1);this.closest('.banner').remove();};
+  function rel(items){
+    var want=emp?'jobseeker':'employer', ints=String(u.interests||'').split(' ').filter(Boolean);
+    var rows=items.filter(function(x){return x.type===want;});
+    var m=ints.length?rows.filter(function(x){return String(x.cat).split(' ').some(function(c){return ints.indexOf(c)>=0;});}):[];
+    var el=$('#rel'); if(!el) return;
+    if(!m.length && ints.length){el.innerHTML='<p class="small muted" style="margin:0 2px 8px">فعلاً موردی در حوزه‌ی تو نیست؛ تازه‌ترین‌ها:</p>';var d=document.createElement('div');el.appendChild(d);fillLatest(d,rows,4);return;}
+    fillLatest(el,m.length?m:rows,5);
+  }
+  if(feed.length) rel(feed);
+  TY.feed().then(rel).catch(function(){});
+}
+function render(me){ if(!me||!me.user) return; var st=me.user.status; if(st==='approved') approved(me); else if(st==='rejected'||st==='blocked') rejected(me); else pending(me); }
+if(!s) guest(); else { var c=TY.cachedMe(); if(c&&c.user) render(c); else main.innerHTML=TY.skeleton(3); TY.me().then(function(r){ if(r) render(r); else if(!TY.session()) guest(); }); TY.startPolling(render); }
+
+});</script>
+</body>
+</html>
