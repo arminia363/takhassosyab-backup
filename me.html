@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610100035">
+<link rel="stylesheet" href="assets/app.css?v=2610101215">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610100035" defer></script><script src="assets/core.js?v=2610100035" defer></script>
+<script src="assets/data.js?v=2610101215" defer></script><script src="assets/core.js?v=2610101215" defer></script>
 </head>
 <body>
 <main></main>
@@ -35,7 +35,7 @@ function draw(me){
    '<a class="row" href="admin.html"><span class="tile-ic brand">'+TY.ic('shield','sm')+'</span><div class="grow"><div class="t">پنل ادمین</div><div class="s">عضویت‌ها، آگهی‌ها و رزومه‌های منتظر تأیید</div></div>'+TY.ic('fwd','sm chev')+'</a>'+
    '<button class="row" id="admPrefRow"><span class="tile-ic">'+TY.ic('bell','sm')+'</span><div class="grow"><div class="t">تنظیمات اعلان ادمین</div><div class="s">'+TY.esc(prefSummary(me.adminPrefs))+'</div></div>'+TY.ic('fwd','sm chev')+'</button></div>':'')+
    '<div class="section-h" id="mine"><h2>ارسال‌های من</h2><a href="post.html">'+TY.ic('plus','xs')+'جدید</a></div>'+
-   ((me.mine||[]).length?'<div class="list">'+me.mine.map(function(m,i){return '<button class="row" data-m="'+i+'"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+'</div></div>'+TY.statusBadge(m.status)+'</button>';}).join('')+'</div>'
+   ((me.mine||[]).length?'<div class="list">'+me.mine.map(function(m,i){return '<button class="row" data-m="'+i+'"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+(m.status==='rejected'&&m.reason?' · '+TY.esc(m.reason):'')+'</div></div>'+TY.statusBadge(m.status,m.reason)+'</button>';}).join('')+'</div>'
      :'<div class="card flat small muted">هنوز آگهی یا رزومه‌ای نفرستاده‌ای.</div>')+
    '<div class="section-h"><h2>اعلان‌ها و تطبیق</h2></div><div class="list">'+
    '<a class="row" '+(u.tg?'':'target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'"')+'><span class="tile-ic '+(u.tg?'brand':'')+'">'+TY.ic('send','sm')+'</span><div class="grow"><div class="t">تلگرام</div><div class="s">'+(u.tg?'وصل است'+(u.tg_user?' · @'+TY.esc(u.tg_user):'')+(u.verified?' · شماره تأییدشده':''):'وصل نیست — برای اعلان فوری بزن')+'</div></div>'+(u.tg?TY.ic('check','sm'):TY.ic('external','sm chev'))+'</a>'+
@@ -75,9 +75,22 @@ function pickTheme(me){var cur=TY.store.get('theme',null)||'';
   s.body.onclick=function(e){var b=e.target.closest('[data-th]');if(!b)return;var v=b.getAttribute('data-th');if(v){TY.store.set('theme',v);document.documentElement.setAttribute('data-theme',v);}else{TY.store.del('theme');document.documentElement.removeAttribute('data-theme');}s.close();draw(me);};}
 function openMine(m){
   var foot=document.createElement('div');foot.style.display='contents';
-  foot.innerHTML=(m.status==='approved'&&m.msg?'':'')+'<button class="btn danger" id="del">'+TY.ic('trash','sm')+'حذف</button><button class="btn outline" id="cp">'+TY.ic('copy','sm')+'کپی متن</button>';
-  var s=TY.sheet({title:m.title||'بدون عنوان',body:'<div class="hstack" style="margin-bottom:12px">'+TY.statusBadge(m.status)+'<span class="xs muted">'+TY.ago(m.created)+'</span></div><div class="posttext">'+TY.richText(m.text)+'</div>',footer:foot});
+  var isAd=m.type==='employer', canEdit=TY.feat('edit')&&m.data&&Object.keys(m.data).length&&['pending','approved','closed','private','rejected'].indexOf(m.status)>=0;
+  var canClose=TY.feat('mine')&&(m.status==='approved'||m.status==='pending'), canOpen=TY.feat('mine')&&m.status==='closed';
+  foot.innerHTML=(canEdit?'<a class="btn primary" href="'+(isAd?'employer.html':'jobseeker.html')+'?edit='+TY.esc(m.id)+'">'+TY.ic('edit','sm')+(m.status==='rejected'?'اصلاح و ارسال دوباره':'ویرایش')+'</a>':'')+
+    (canClose&&isAd?'<button class="btn outline" id="cls">'+TY.ic('lock','sm')+'بستن آگهی</button>':'')+(canOpen?'<button class="btn outline" id="opn">'+TY.ic('refresh','sm')+'باز کردن دوباره</button>':'')+
+    '<button class="btn danger" id="del">'+TY.ic('trash','sm')+'حذف</button><button class="btn outline" id="cp">'+TY.ic('copy','sm')+'کپی متن</button>';
+  var note=m.status==='rejected'?'<div class="banner danger" style="margin-bottom:12px">'+TY.ic('alert','sm')+'<div class="grow"><b>تأیید نشد</b>'+(m.reason?'دلیل: '+TY.esc(m.reason):'ادمین این مورد را منتشر نکرد.')+(canEdit?' می‌توانی اصلاحش کنی و دوباره بفرستی.':'')+'</div></div>'
+    :m.status==='pending'&&m.msg?'<div class="banner info" style="margin-bottom:12px">'+TY.ic('clock','sm')+'<div class="grow">ویرایش تو برای بررسی ادمین رفته. تا تأیید، نسخه‌ی قبلی در کانال می‌ماند.</div></div>':'';
+  var s=TY.sheet({title:m.title||'بدون عنوان',body:note+'<div class="hstack" style="margin-bottom:12px">'+TY.statusBadge(m.status,m.reason)+'<span class="xs muted">'+TY.ago(m.created)+'</span></div>'+(m.targetTitle?'<div class="small muted" style="margin-bottom:10px">برای آگهی «'+TY.esc(m.targetTitle)+'»</div>':'')+'<div class="posttext">'+TY.richText(m.text)+'</div>',footer:foot});
+  function refresh(msg){s.close();TY.toast(msg);TY.me().then(function(x){if(x)draw(x);});}
   foot.querySelector('#cp').onclick=function(){TY.copy(m.text);};
+  if(foot.querySelector('#cls'))foot.querySelector('#cls').onclick=function(){s.close();setTimeout(function(){
+    var f=document.createElement('div');f.style.display='contents';
+    var s2=TY.sheet({title:'بستن آگهی',body:'<p class="small muted" style="margin-top:0">آگهی از برنامه برمی‌دارد و روی پست کانال علامت «بسته شد» می‌خورد. هر وقت خواستی دوباره بازش کن.</p><div class="list"><button class="row" data-h="1"><span class="tile-ic brand">'+TY.ic('check','sm')+'</span><div class="grow"><div class="t">استخدام انجام شد</div></div></button><button class="row" data-h="0"><span class="tile-ic">'+TY.ic('lock','sm')+'</span><div class="grow"><div class="t">فقط بسته شود</div></div></button></div>'});
+    s2.body.onclick=function(e){var b=e.target.closest('[data-h]');if(!b)return;b.classList.add('loading');TY.api('my_close',{id:m.id,hired:b.getAttribute('data-h')==='1'}).then(function(r){if(r&&r.ok){s2.close();TY.toast('آگهی بسته شد');TY.me().then(function(x){if(x)draw(x);});}else{b.classList.remove('loading');TY.toast(TY.errText(r),'err');}});};
+  },320);};
+  if(foot.querySelector('#opn'))foot.querySelector('#opn').onclick=function(){var b=this;b.classList.add('loading');TY.api('my_renew',{id:m.id}).then(function(r){if(r&&r.ok)refresh(r.status==='pending'?'برای تأیید دوباره به ادمین رفت':'آگهی دوباره باز شد');else{b.classList.remove('loading');TY.toast(TY.errText(r),'err');}});};
   foot.querySelector('#del').onclick=function(){TY.confirm('حذف شود؟',m.status==='approved'?'از برنامه و کانال هم پاک می‌شود.':'این مورد پاک می‌شود.','حذف',true).then(function(y){if(!y)return;
     TY.api('my_delete',{id:m.id}).then(function(r){if(r&&r.ok){s.close();TY.toast('حذف شد');TY.me().then(function(x){if(x)draw(x);});}else TY.toast(TY.errText(r),'err');});});};
 }

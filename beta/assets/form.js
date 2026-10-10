@@ -30,8 +30,12 @@
       return;
     }
 
-    var rawDraft = TY.store.get(KEY, null), lastSt = TY.store.get('last_' + kind, null);
-    var hadDraft = !!(rawDraft && (rawDraft.dept || rawDraft.pos || rawDraft.reqs || rawDraft.summary || rawDraft.headline || rawDraft.extra));
+    // ویرایش یک ارسال قبلی (?edit=<id>): فقط وقتی سرور my_edit دارد و فرم ذخیره‌شده در me.mine هست
+    var editId = TY.qs('edit'), editItem = null;
+    if (editId && TY.feat('edit')) editItem = ((TY.cachedMe() || {}).mine || []).filter(function (x) { return String(x.id) === editId && x.type === kind && x.data && typeof x.data === 'object' && Object.keys(x.data).length; })[0] || null;
+    if (editItem) KEY = 'draft_edit_' + kind;
+    var rawDraft = editItem ? JSON.parse(JSON.stringify(editItem.data)) : TY.store.get(KEY, null), lastSt = editItem ? null : TY.store.get('last_' + kind, null);
+    var hadDraft = !editItem && !!(rawDraft && (rawDraft.dept || rawDraft.pos || rawDraft.reqs || rawDraft.summary || rawDraft.headline || rawDraft.extra));
     function freshSt() {
       var s0 = {coop: [], salMode: isCV ? 'none' : 'agree', exp: [{}], skills: [], soft: [], vis: 'channel'};
       if (user) { s0.contact = user.mobile; if (isCV) s0.name = user.name; if (user.city) s0.city = user.city; }
@@ -41,7 +45,7 @@
     if (!st.contact && user) st.contact = user.mobile;
     if (isCV && !st.name && user) st.name = user.name;
     if (!st.city && user && user.city) st.city = user.city;
-    var to = TY.qs('to'); if (isCV && to) { st.vis = 'direct'; st.target = to; }
+    var to = editItem ? '' : TY.qs('to'); if (isCV && to) { st.vis = 'direct'; st.target = to; }
     var step = 0, finished = false, confirmedDup = false;
 
     function deptObj() { return D.depts.filter(function (d) { return d.name === st.dept; })[0]; }
@@ -240,7 +244,7 @@
       var b = document.getElementById('next');
       if (b && b.classList.contains('loading')) return;
       var tx = buildText(), h = tx.length + ':' + tx.slice(0, 160) + tx.slice(-100), ls = TY.store.get('lastsub', null);
-      if (ls && ls.h === h && Date.now() - ls.t < 900000 && !confirmedDup) {
+      if (!editItem && ls && ls.h === h && Date.now() - ls.t < 900000 && !confirmedDup) {
         TY.confirm('همین را چند دقیقه پیش فرستاده‌ای', 'اگر ارسال قبلی انجام نشد دوباره بفرست؛ وگرنه «ارسال‌های من» را ببین تا دو بار برای ادمین نرود.', 'ارسال دوباره').then(function (y) { if (y) { confirmedDup = true; submit(); } });
         return;
       }
@@ -249,10 +253,12 @@
         if (!ok) return;
         b.classList.add('loading');
         var text = buildText();
-        TY.api('submit', {type: kind, title: isCV ? (st.name + (titleTxt() ? ' | ' + titleTxt() : '')) : titleTxt(), text: text, tags: tags().join(' '), city: [st.city, st.area].filter(Boolean).join('، '),
+        TY.api(editItem ? 'my_edit' : 'submit', {id: editItem ? editItem.id : undefined, type: kind, title: isCV ? (st.name + (titleTxt() ? ' | ' + titleTxt() : '')) : titleTxt(), text: text, tags: tags().join(' '), city: [st.city, st.area].filter(Boolean).join('، '),
           contact: TY.en(st.contact || ''), vis: isCV ? st.vis : 'channel', target: isCV && st.vis === 'direct' ? st.target : '', fields: st}).then(function (r) {
           b.classList.remove('loading');
           if (!r || !r.ok) { TY.store.del('lastsub'); TY.toast(TY.errText(r), 'err'); return; }
+          if (r.dup) TY.toast('این را همین چند ساعت پیش فرستاده بودی؛ همان ارسال قبلی ثبت است');
+          if (editItem) { TY.store.del(KEY); done(r.status); TY.me(); return; }
           var keep = JSON.parse(JSON.stringify(st)); delete keep.target; if (keep.vis === 'direct') keep.vis = isCV ? 'channel' : keep.vis; TY.store.set('last_' + kind, keep);
           TY.store.del(KEY); done(r.status);
           TY.me();

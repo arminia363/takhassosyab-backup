@@ -126,12 +126,30 @@
       if (!r || !r.ok) return null;
       TY.store.set('me', r);
       if (r.bot) TY.BOT = r.bot;
+      mergeSaved(r);
       handleNotifs(r);
       paintBell(r.unread || 0);
       return r;
     }).catch(function () { return TY.store.get('me'); });
   };
   TY.cachedMe = function () { return TY.store.get('me'); };
+  // قابلیت‌های سرور (از me/ping). سرور قدیمی‌تر این فیلد را ندارد؛ آن‌وقت امکانات جدید پنهان می‌ماند.
+  TY.feat = function (k) { var m = TY.store.get('me'); return !!(m && m.features && m.features[k]); };
+  // ذخیره‌شده‌ها بین دستگاه‌ها: سرور فقط شناسه‌ها را نگه می‌دارد؛ آگهی کامل از فید ساخته می‌شود.
+  function mergeSaved(r) {
+    if (!r || !(r.saved instanceof Array) || !(r.features && r.features.inboxState)) return;
+    var local = TY.store.get('saved', []), have = {}, feed = TY.cachedFeed() || [], changed = false;
+    local.forEach(function (x) { have[x.id] = 1; });
+    r.saved.forEach(function (id) {
+      if (have[id]) return;
+      var it = feed.filter(function (f) { return f.id === id; })[0];
+      if (it) { local.push({id: it.id, type: it.type, title: it.title, text: it.text, cat: it.cat, city: it.city, created: it.created, dm: it.dm, msg: it.msg}); changed = true; }
+    });
+    if (changed) TY.store.set('saved', local.slice(0, 200));
+    var onServer = {}; r.saved.forEach(function (id) { onServer[id] = 1; });
+    var up = local.map(function (x) { return x.id; }).filter(function (id) { return !onServer[id]; });
+    if (up.length) TY.api('saved_sync', {saved: up}).catch(function () {});
+  }
   TY.requireLogin = function (msg) {
     if (TY.session()) return true;
     TY.store.set('ret', location.pathname.split('/').pop() + location.search);
@@ -198,7 +216,9 @@
       var a = TY.saved.all(), on = a.some(function (x) { return x.id === it.id; });
       a = a.filter(function (x) { return x.id !== it.id; });
       if (!on) a.unshift({id: it.id, type: it.type, title: it.title, text: it.text, cat: it.cat, city: it.city, created: it.created, dm: it.dm, msg: it.msg});
-      TY.store.set('saved', a.slice(0, 200)); return !on;
+      TY.store.set('saved', a.slice(0, 200));
+      if (TY.feat('inboxState') && TY.session()) TY.api('saved_sync', on ? {remove: [it.id]} : {saved: [it.id]}).catch(function () {});
+      return !on;
     }
   };
 
@@ -224,7 +244,7 @@
     var e = (r && (r.error || r.detail)) || 'net';
     return ({auth: 'دوباره وارد شو', key: 'رمز ادمین نادرست است', mobile: 'شماره موبایل درست نیست', name: 'نام را بنویس', text: 'متن کامل نیست', rate: 'امروز زیاد ارسال کرده‌ای؛ کمی بعد دوباره امتحان کن',
       target: 'این آگهی دیگر فعال نیست', owner: 'مالک اصلی را نمی‌شود برداشت', status: 'حساب تو فعال نیست', telegram: 'ارسال به تلگرام ناموفق بود: ' + ((r && r.detail) || ''), code: 'کد درست نیست', tries: 'تلاش زیاد؛ ۱۰ دقیقه بعد دوباره امتحان کن',
-      nouser: 'با این شماره عضوی پیدا نشد', blocked: 'این حساب مسدود است', expired: 'زمان ورود تمام شد؛ دوباره امتحان کن', server: 'سرور مشغول است؛ کمی بعد دوباره امتحان کن', notfound: 'این مورد دیگر وجود ندارد', op: 'این کار الان ممکن نیست', action: 'این کار الان ممکن نیست', net: 'اتصال برقرار نشد؛ دوباره امتحان کن', network: 'اتصال برقرار نشد؛ دوباره امتحان کن', oldserver: 'نسخه‌ی جدید سرور هنوز فعال نشده است', timeout: 'سرور دیر جواب داد؛ دوباره امتحان کن'})[e] || 'مشکلی پیش آمد؛ کمی بعد دوباره امتحان کن';
+      nouser: 'با این شماره عضوی پیدا نشد', blocked: 'این حساب مسدود است', expired: 'زمان ورود تمام شد؛ دوباره امتحان کن', server: 'سرور مشغول است؛ کمی بعد دوباره امتحان کن', notfound: 'این مورد دیگر وجود ندارد', limit: 'در هر بار حداکثر ۳۰ مورد', state: 'وضعیت نامعتبر است', type: 'این کار برای این مورد ممکن نیست', deleted: 'این مورد حذف شده است', op: 'این کار الان ممکن نیست', action: 'این کار الان ممکن نیست', net: 'اتصال برقرار نشد؛ دوباره امتحان کن', network: 'اتصال برقرار نشد؛ دوباره امتحان کن', oldserver: 'نسخه‌ی جدید سرور هنوز فعال نشده است', timeout: 'سرور دیر جواب داد؛ دوباره امتحان کن'})[e] || 'مشکلی پیش آمد؛ کمی بعد دوباره امتحان کن';
   };
 
   /* ---------------- sheet ---------------- */
@@ -314,7 +334,7 @@
     return '<div class="empty"><div class="ic">' + TY.ic(icon, 'lg') + '</div><h3>' + TY.esc(title) + '</h3><p>' + TY.esc(text || '') + '</p>' + (action || '') + '</div>';
   };
   TY.statusBadge = function (st, vis) {
-    var m = {pending: ['warn', 'در انتظار تأیید'], approved: ['brand', 'منتشر شده'], rejected: ['danger', 'رد شده'], private: ['info', 'فقط برای ادمین'], direct: ['info', 'ارسال مستقیم'], deleted: ['', 'حذف شده']}[st] || ['', st || ''];
+    var m = {pending: ['warn', 'در انتظار تأیید'], approved: ['brand', 'منتشر شده'], rejected: ['danger', 'رد شده'], private: ['info', 'فقط برای ادمین'], direct: ['info', 'ارسال مستقیم'], deleted: ['', 'حذف شده'], closed: ['', vis === 'hired' ? 'استخدام شد' : 'بسته شد']}[st] || ['', st || ''];
     return '<span class="badge dotted ' + m[0] + '">' + m[1] + '</span>';
   };
 
