@@ -2,6 +2,28 @@
 (function () {
   'use strict';
   var TY = window.TY, D = window.TY_DATA, esc = TY.esc;
+  var VQ = ''; try { VQ = ((document.currentScript && document.currentScript.src) || '').match(/\?v=[\w.]+/)[0]; } catch (e) {}
+  var loaded = {};
+  function loadJS(src) { // lazy, local-only (no CDN: must work in Iran without VPN)
+    if (loaded[src]) return loaded[src];
+    return (loaded[src] = new Promise(function (ok, no) { var el = document.createElement('script'); el.src = src + VQ; el.async = true; el.onload = ok; el.onerror = function () { delete loaded[src]; no(new Error('load')); }; document.head.appendChild(el); }));
+  }
+  var RLIBS = {
+    pdf: function () { return loadJS('assets/vendor/pdf.min.js').then(function () { window.pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('assets/vendor/pdf.worker.min.js' + VQ, location.href).href; return window.pdfjsLib; }); },
+    zip: function () { return loadJS('assets/vendor/jszip.min.js').then(function () { return window.JSZip; }); }
+  };
+  var RERR = {
+    type: 'فقط فایل PDF، Word (با پسوند docx) یا متنی (txt) پشتیبانی می‌شود.',
+    doc: 'فایل Word قدیمی (doc) خوانده نمی‌شود. آن را به‌صورت DOCX یا PDF ذخیره کن و دوباره امتحان کن.',
+    size: 'حجم فایل بیشتر از ۵ مگابایت است. فایل کوچک‌تری انتخاب کن.',
+    empty: 'این فایل خالی است.',
+    noText: 'این فایل متن ندارد؛ احتمالاً اسکن یا عکس است و فعلاً خوانده نمی‌شود. فایل PDF یا Word اصلی رزومه را انتخاب کن، یا فرم را دستی پر کن.',
+    password: 'این PDF رمز دارد. نسخه‌ی بدون رمز را انتخاب کن.',
+    corrupt: 'فایل خراب است یا قابل خواندن نیست. یک فایل دیگر امتحان کن.',
+    load: 'بخش خواندن رزومه بارگذاری نشد. اینترنتت را بررسی کن و دوباره امتحان کن.',
+    nothing: 'چیز مشخصی در این فایل پیدا نشد. فرم را خودت پر کن.',
+    timeout: 'خواندن فایل بیش‌ازحد طول کشید. فایل ساده‌تر یا کوچک‌تری امتحان کن.'
+  };
   var CITY_TAGS = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'دورکاری'];
   function toTag(s) {
     s = String(s || '').trim().replace(/^#+/, '').replace(/[،؛؟«»]/g, '').replace(/[\s\u200c\-]+/g, '_').replace(/[^0-9A-Za-z_\u0600-\u06FF]/g, '').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -47,6 +69,11 @@
     if (!st.city && user && user.city) st.city = user.city;
     var to = editItem ? '' : TY.qs('to'); if (isCV && to) { st.vis = 'direct'; st.target = to; }
     var step = 0, finished = false, confirmedDup = false;
+    var AKEY = 'auto_' + kind, auto = {}, autoPrev = null, autoBanner = true, busy = false, upMsg = '';
+    if (isCV && !editItem) { (TY.store.get(AKEY, []) || []).forEach(function (k) { auto[k] = 1; }); if (!rawDraft) auto = {}; }
+    function autoCount() { return Object.keys(auto).length; }
+    function autoKey(k) { return {dept: 'title', pos: 'title', custom: 'title', salMode: 'sal', salMin: 'sal', salMax: 'sal'}[k] || k; }
+    function dropAuto(k) { k = autoKey(k); if (auto[k]) { delete auto[k]; TY.store.set(AKEY, Object.keys(auto)); var ids = {title: ['w_dept', 'w_pos', 'w_custom'], city: ['w_city', 'w_city2'], sal: ['w_sal']}[k] || ['w_' + k]; ids.forEach(function (id) { var e = document.getElementById(id); if (e) e.classList.remove('auto'); }); } }
 
     function deptObj() { return D.depts.filter(function (d) { return d.name === st.dept; })[0]; }
     function titleTxt() { var p = st.pos === 'سایر' || !st.pos ? (st.custom || '') : st.pos; return p && st.extra ? p + ' – ' + st.extra : (p || st.extra || ''); }
@@ -143,7 +170,7 @@
     }
     function salaryBlock(label) {
       var modes = isCV ? [['none', 'ذکر نشود'], ['agree', 'توافقی'], ['range', 'مبلغ']] : [['agree', 'توافقی'], ['range', 'مبلغ']];
-      var h = '<div class="field"><span class="label">' + label + ' <span class="opt">اختیاری</span></span>' + seg('salMode', modes);
+      var h = '<div class="field" id="w_sal"><span class="label">' + label + ' <span class="opt">اختیاری</span></span>' + seg('salMode', modes);
       if (st.salMode === 'range') h += '<div class="grid2 mt3">' + '<input class="input" data-k="salMin" inputmode="numeric" placeholder="از (میلیون تومان)" value="' + esc(st.salMin || '') + '"><input class="input" data-k="salMax" inputmode="numeric" placeholder="تا (میلیون تومان)" value="' + esc(st.salMax || '') + '"></div>';
       return h + '</div>';
     }
@@ -196,9 +223,31 @@
       {t: 'ارسال', s: 'راه ارتباط و مقصد رزومه', r: function () { return F('contact', 'راه ارتباط', {req: true, ph: '09121234567 یا @username', ltr: true}) + F('link', 'لینک رزومه / نمونه‌کار', {ph: 'https://', ltr: true}) + visBlock() + previewBlock(); }, req: ['contact', 'target']}
     ];
 
+    function uploadCard() {
+      if (!isCV || editItem || step !== 0) return '';
+      return '<section class="upcard mb" aria-labelledby="upT"><span class="tile-ic brand">' + TY.ic('resume', 'sm') + '</span><div class="grow"><b class="small" id="upT">رزومه‌ی آماده داری؟</b>' +
+        '<div class="xs muted" id="upH" style="margin:2px 0 10px">فایل PDF، Word (docx) یا متنی را انتخاب کن تا فرم خودکار پر شود. فایل فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.</div>' +
+        '<button type="button" class="btn outline" id="resumeBtn" aria-describedby="upH"' + (busy ? ' disabled' : '') + '>' + TY.ic('resume', 'sm') + 'آپلود رزومه و پر کردن خودکار</button>' +
+        '<input type="file" id="resumeFile" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" style="display:none" aria-label="انتخاب فایل رزومه">' +
+        '<div class="xs" id="resumeStatus" role="status" aria-live="polite" style="margin-top:8px">' + esc(upMsg) + '</div></div></section>';
+    }
+    function autoBannerHtml() {
+      if (!isCV || !autoCount() || !autoBanner) return '';
+      return '<div class="banner brand mb" id="autoBanner" role="status">' + TY.ic('check', 'sm') + '<div class="grow"><b>موارد به‌صورت خودکار پر شده‌اند؛ لطفاً مرور و اصلاح کن.</b>' +
+        '<div class="xs" style="margin-top:2px">کادرهای دارای برچسب «خودکار» از رزومه‌ات خوانده شده‌اند. چیزی که پیدا نشد خالی مانده و تا نرسی به مرحله‌ی آخر و ارسال را نزنی، چیزی فرستاده نمی‌شود.</div>' +
+        '<div class="hstack mt2" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-autoundo>برگرداندن</button><button type="button" class="btn ghost sm" data-autook>متوجه شدم</button></div></div></div>';
+    }
+    function paintAuto() {
+      if (!isCV) return;
+      var ids = {title: ['w_dept', 'w_pos', 'w_custom'], city: [CITY_TAGS.indexOf(st.city) >= 0 ? 'w_city' : 'w_city2'], sal: ['w_sal']};
+      Object.keys(auto).forEach(function (k) {
+        if (k === 'exp') { TY.$$('[data-exp]').forEach(function (i) { if (i.value) i.classList.add('auto'); }); return; }
+        (ids[k] || ['w_' + k]).forEach(function (id) { var e = document.getElementById(id); if (e) e.classList.add('auto'); });
+      });
+    }
     function render() {
       var S = STEPS[step];
-      main.innerHTML = (step === 0 && hadDraft ? '<div class="banner brand mb">' + TY.ic('check', 'sm') + '<div class="grow">پیش‌نویس قبلی‌ات برگشت؛ از همان‌جا ادامه بده.<div><button type="button" class="btn ghost sm" data-newdraft>شروع از نو</button></div></div></div>' : '') +
+      main.innerHTML = autoBannerHtml() + uploadCard() + (step === 0 && hadDraft ? '<div class="banner brand mb">' + TY.ic('check', 'sm') + '<div class="grow">پیش‌نویس قبلی‌ات برگشت؛ از همان‌جا ادامه بده.<div><button type="button" class="btn ghost sm" data-newdraft>شروع از نو</button></div></div></div>' : '') +
         (step === 0 && !hadDraft && lastSt ? '<div class="banner mb">' + TY.ic('copy', 'sm') + '<div class="grow">' + (isCV ? 'رزومه‌ی قبلی‌ات را داری.' : 'آگهی قبلی‌ات را داری.') + '<div><button type="button" class="btn outline sm" data-uselast>' + (isCV ? 'پر کردن از رزومه‌ی قبلی' : 'پر کردن از آگهی قبلی') + '</button></div></div></div>' : '') +
         (user && user.status === 'pending' ? '<div class="banner warn mb">' + TY.ic('clock', 'sm') + '<div class="grow">عضویتت هنوز در انتظار تأیید است؛ ' + (isCV ? 'رزومه‌ات' : 'آگهی‌ات') + ' همراه آن بررسی می‌شود.</div></div>' : '') +
         '<div class="steps" aria-hidden="true">' + STEPS.map(function (x, i) { return '<i class="' + (i < step ? 'done' : (i === step ? 'on' : '')) + '"></i>'; }).join('') + '</div>' +
@@ -211,6 +260,7 @@
         '<button class="btn ' + (last ? 'primary' : 'dark') + ' lg" id="next">' + (last ? (isCV && st.vis === 'direct' ? 'ارسال برای کارفرما' : (isCV && st.vis === 'admin' ? 'ارسال برای ادمین' : 'ارسال برای تأیید')) : 'ادامه') + (last ? '' : TY.ic('fwd', 'sm')) + '</button></div>';
       document.getElementById('next').onclick = next;
       var pv = document.getElementById('prev'); if (pv) pv.onclick = function () { if (history.state && history.state.fstep === step) history.back(); else { step--; render(); window.scrollTo(0, 0); } };
+      paintAuto();
       // city free text mirrors chip
       var cityIn = document.getElementById('f_city'); if (cityIn && CITY_TAGS.indexOf(st.city) >= 0) cityIn.value = '';
     }
@@ -266,7 +316,7 @@
       });
     }
     function done(status) {
-      finished = true; var bar = document.querySelector('.actionbar'); if (bar) bar.remove(); document.body.classList.remove('has-ab');
+      TY.store.del(AKEY); finished = true; var bar = document.querySelector('.actionbar'); if (bar) bar.remove(); document.body.classList.remove('has-ab');
       var msg = {pending: [isCV ? 'رزومه‌ات برای ادمین رفت' : 'آگهی‌ات برای بررسی رفت', 'بعد از تأیید ادمین در کانال @JobVacencies و برنامه منتشر می‌شود و همین‌جا و در تلگرام خبرت می‌کنیم.'],
         private: ['رزومه‌ات برای ادمین فرستاده شد', 'رزومه عمومی نمی‌شود. ادمین‌ها آن را می‌بینند و برای فرصت مناسب معرفی‌ات می‌کنند.'],
         direct: ['رزومه‌ات برای کارفرما رفت', 'کارفرما در برنامه و تلگرام آن را می‌بیند. موفق باشی!']}[status] || ['ارسال شد', ''];
@@ -288,18 +338,61 @@
       s.body.addEventListener('click', function (e) { var b = e.target.closest('[data-ad]'); if (!b) return; st.target = b.getAttribute('data-ad'); save(); s.close(); render(); });
     }
 
+    /* ---------- رزومه → فرم (همه‌چیز داخل مرورگر) ---------- */
+    function setUp(msg, bad) { upMsg = msg || ''; var e = document.getElementById('resumeStatus'); if (e) { e.textContent = upMsg; e.style.color = bad ? 'var(--danger)' : ''; e.setAttribute('role', bad ? 'alert' : 'status'); } }
+    function hasContent() { return !!(st.dept || st.summary || st.headline || (st.skills || []).length || (st.exp || []).some(function (j) { return j.role || j.company; })); }
+    function importResume(file) {
+      if (busy) return; busy = true; var btn = document.getElementById('resumeBtn'); if (btn) btn.disabled = true; setUp('در حال خواندن رزومه… چند ثانیه صبر کن.');
+      var to = new Promise(function (_, no) { setTimeout(function () { no({code: 'timeout'}); }, 40000); });
+      var work = loadJS('assets/resume.js').catch(function () { throw {code: 'load'}; }).then(function () {
+        return window.TYResume.readFile(file, {pdf: function () { return RLIBS.pdf().catch(function () { throw {code: 'load'}; }); }, zip: function () { return RLIBS.zip().catch(function () { throw {code: 'load'}; }); }}, {maxBytes: 5 * 1024 * 1024});
+      }).then(function (text) { return window.TYResume.parse(text, D); });
+      Promise.race([work, to]).then(function (res) {
+        busy = false; var f = res.fields, n = 0; ['name', 'contact', 'city', 'dept', 'headline', 'summary', 'exp', 'skills', 'soft', 'degree', 'major', 'uni', 'certs', 'langs', 'salMode', 'coop', 'start', 'industry', 'age', 'military', 'link'].forEach(function (k) { if (f[k] && (!Array.isArray(f[k]) || f[k].length)) n++; });
+        if (n < 2) { setUp(RERR.nothing, true); if (btn) btn.disabled = false; return; }
+        var go = function () { applyResume(f); };
+        if (hasContent()) TY.confirm('فرم قبلاً پر شده', 'مواردی که از رزومه خوانده شد جایگزین مقدارهای فعلی می‌شود. «برگرداندن» هم می‌توانی بزنی.', 'پر کردن از رزومه').then(function (y) { if (y) go(); else { setUp(''); if (btn) btn.disabled = false; } });
+        else go();
+      }).catch(function (e) {
+        busy = false; var c = e && e.code; setUp(RERR[c] || RERR.corrupt, true); var b2 = document.getElementById('resumeBtn'); if (b2) b2.disabled = false;
+        try { if (window.console && !RERR[c]) console.warn('resume import failed', e); } catch (x) {}
+      });
+    }
+    function applyResume(f) {
+      autoPrev = JSON.parse(JSON.stringify(st)); var A = {}, userDefault = function (cur, def) { return !String(cur || '').trim() || (def && String(cur).trim() === String(def).trim()); };
+      var put = function (k, v, a) { st[k] = v; A[a || k] = 1; };
+      if (f.name && userDefault(st.name, user && user.name)) put('name', f.name);
+      if (f.contact && userDefault(st.contact, user && user.mobile)) put('contact', f.contact);
+      if (f.city && userDefault(st.city, user && user.city)) put('city', f.city);
+      if (f.dept) { st.dept = f.dept; st.pos = f.pos || ''; st.custom = f.pos === 'سایر' ? (f.custom || '') : ''; A.title = 1; }
+      ['headline', 'age', 'military', 'summary', 'degree', 'major', 'uni', 'certs', 'langs', 'start', 'industry', 'link'].forEach(function (k) { if (f[k]) put(k, f[k]); });
+      ['skills', 'soft', 'coop'].forEach(function (k) { if (f[k] && f[k].length) put(k, f[k].slice()); });
+      if (f.exp && f.exp.length) { st.exp = f.exp.map(function (j) { return {role: j.role || '', company: j.company || '', years: j.years || '', ach: j.ach || ''}; }); A.exp = 1; }
+      if (f.salMode === 'range') { st.salMode = 'range'; st.salMin = f.salMin; st.salMax = f.salMax; A.sal = 1; } else if (f.salMode === 'agree') { st.salMode = 'agree'; A.sal = 1; }
+      auto = A; autoBanner = true; TY.store.set(AKEY, Object.keys(A)); upMsg = ''; save();
+      step = 0; try { history.replaceState({fstep: 0}, ''); } catch (e) {} render(); window.scrollTo(0, 0);
+      TY.toast(TY.fa(Object.keys(A).length) + ' مورد از رزومه پر شد؛ لطفاً مرور و اصلاح کن');
+      var ab = document.getElementById('autoBanner'); if (ab) { ab.setAttribute('tabindex', '-1'); ab.focus({preventScroll: true}); }
+    }
+    function undoAuto() { if (!autoPrev) return; st = autoPrev; autoPrev = null; auto = {}; TY.store.del(AKEY); save(); upMsg = ''; render(); TY.toast('به حالت قبل برگشت'); }
+
     main.addEventListener('input', function (e) {
       var t = e.target, k = t.getAttribute('data-k');
-      if (k) { st[k] = t.type === 'checkbox' ? t.checked : t.value; if (k === 'city') { TY.$$('[data-chip="city"]').forEach(function (c) { c.setAttribute('aria-pressed', c.getAttribute('data-v') === t.value); }); } err(k === 'custom' ? 'title' : k, ''); save(); }
-      var ex = t.getAttribute('data-exp'); if (ex != null) { st.exp[+ex][t.getAttribute('data-f')] = t.value; save(); }
+      if (k) { dropAuto(k); st[k] = t.type === 'checkbox' ? t.checked : t.value; if (k === 'city') { TY.$$('[data-chip="city"]').forEach(function (c) { c.setAttribute('aria-pressed', c.getAttribute('data-v') === t.value); }); } err(k === 'custom' ? 'title' : k, ''); save(); }
+      var ex = t.getAttribute('data-exp'); if (ex != null) { st.exp[+ex][t.getAttribute('data-f')] = t.value; t.classList.remove('auto'); save(); }
     });
-    main.addEventListener('change', function (e) { var t = e.target, k = t.getAttribute('data-k'); if (k) { st[k] = t.type === 'checkbox' ? t.checked : t.value; save(); } });
+    main.addEventListener('change', function (e) {
+      if (e.target.id === 'resumeFile') { var f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) importResume(f); return; }
+      var t = e.target, k = t.getAttribute('data-k'); if (k) { dropAuto(k); st[k] = t.type === 'checkbox' ? t.checked : t.value; save(); } });
     main.addEventListener('click', function (e) {
-      if (e.target.closest('[data-newdraft]')) { TY.store.del(KEY); hadDraft = false; st = freshSt(); render(); return; }
+      if (e.target.closest('[data-newdraft]')) { TY.store.del(KEY); TY.store.del(AKEY); auto = {}; hadDraft = false; st = freshSt(); render(); return; }
       if (e.target.closest('[data-uselast]')) { st = JSON.parse(JSON.stringify(lastSt)); delete st.target; if (st.vis === 'direct') st.vis = 'channel'; if (!isCV) st.vis = 'channel'; save(); render(); TY.toast('پر شد؛ هر چه لازم است عوض کن'); return; }
+      if (e.target.closest('#resumeBtn')) { var fi = document.getElementById('resumeFile'); if (fi) fi.click(); return; }
+      if (e.target.closest('[data-autoundo]')) { undoAuto(); return; }
+      if (e.target.closest('[data-autook]')) { autoBanner = false; var ab = document.getElementById('autoBanner'); if (ab) ab.remove(); return; }
       var c = e.target.closest('[data-chip]');
       if (c) {
-        var k = c.getAttribute('data-chip'), v = c.getAttribute('data-v');
+        var k = c.getAttribute('data-chip'), v = c.getAttribute('data-v'); dropAuto(k);
         if (c.getAttribute('data-m') === '1') { st[k] = st[k] || []; var i = st[k].indexOf(v); if (i >= 0) st[k].splice(i, 1); else st[k].push(v); c.setAttribute('aria-pressed', i < 0); }
         else {
           st[k] = st[k] === v && k !== 'dept' ? '' : v;
@@ -310,7 +403,7 @@
         }
         save(); return;
       }
-      var sg = e.target.closest('[data-seg]'); if (sg) { st[sg.getAttribute('data-seg')] = sg.getAttribute('data-v'); save(); render(); return; }
+      var sg = e.target.closest('[data-seg]'); if (sg) { dropAuto(sg.getAttribute('data-seg')); st[sg.getAttribute('data-seg')] = sg.getAttribute('data-v'); save(); render(); return; }
       var vb = e.target.closest('[data-vis]'); if (vb) { st.vis = vb.getAttribute('data-vis'); save(); render(); if (st.vis === 'direct' && !st.target) pickAd(); return; }
       if (e.target.closest('[data-pickad]')) { pickAd(); return; }
       if (e.target.closest('[data-addexp]')) { st.exp.push({}); save(); render(); return; }

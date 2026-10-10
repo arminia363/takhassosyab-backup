@@ -367,3 +367,11 @@ hr.sep{border:0;height:1px;background:var(--line);margin:var(--s4) 0}
 .tgb{white-space:pre-wrap;line-height:1.9;font-size:var(--fs-sm);word-break:break-word;background:var(--surface);border-radius:14px;padding:var(--s3) var(--s4);box-shadow:0 1px 0 var(--line)}
 @media (min-width:700px){.statgrid{grid-template-columns:repeat(3,1fr)}}
 .banner.danger{background:var(--danger-soft);color:var(--danger)}
+
+/* resume import (form.js) */
+.upcard{display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s4);border-radius:var(--r-lg);border:1px dashed var(--line-2);background:var(--surface)}
+.upcard .btn{max-width:100%;white-space:normal;text-align:center}
+.field.auto>label::after,.field.auto>.label::after{content:"خودکار";margin-inline-start:auto;font-size:var(--fs-xs);font-weight:650;color:var(--brand-text);background:var(--brand-soft);padding:1px 10px;border-radius:999px;line-height:1.6}
+.field.auto .input,.field.auto .select,.field.auto .textarea,.input.auto{border-color:var(--brand);background:color-mix(in srgb,var(--brand-soft) 50%,var(--surface))}
+.field.auto .chip[aria-pressed=true]{outline:2px dashed var(--brand);outline-offset:2px}
+.field.auto .seg{outline:2px dashed var(--brand);outline-offset:2px;border-radius:var(--r)}
