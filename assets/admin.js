@@ -77,7 +77,7 @@
     function userRow(u, inline) {
       var sk = 'u:' + u.mobile;
       return '<div class="row arow' + (selMode && sel[sk] ? ' sel' : '') + '" data-u="' + esc(u.mobile) + '"' + (selMode ? ' role="checkbox" tabindex="0" aria-checked="' + !!sel[sk] + '"' : '') + '>' + (selMode ? selBox() : '') + '<span class="avatar">' + esc(TY.initial(u.name)) + '</span><div class="grow"><div class="t">' + esc(u.name || 'بدون نام') + '</div>' +
-        '<div class="s"><span class="num" dir="ltr">' + TY.fa(u.mobile) + '</span> · ' + (u.role === 'employer' ? 'کارفرما' : u.role === 'jobseeker' ? 'کارجو' : 'نقش نامشخص') + ' · ' + TY.ago(u.created) + (u.tg ? ' · <span style="color:var(--brand-text)">تلگرام' + (u.verified ? ' ✓' : '') + '</span>' : '') + '</div>' + dupBadge('u', u.mobile) + '</div>' +
+        '<div class="s"><span class="num" dir="ltr">' + TY.fa(u.mobile) + '</span> · ' + (u.admin ? 'ادمین' : u.role === 'employer' ? 'کارفرما' : u.role === 'jobseeker' ? 'کارجو' : 'عضو') + ' · ' + TY.ago(u.created) + (u.tg ? ' · <span style="color:var(--brand-text)">تلگرام' + (u.verified ? ' ✓' : '') + '</span>' : '') + '</div>' + dupBadge('u', u.mobile) + '</div>' +
         (inline && !selMode ? acts('u', u.mobile) : '<span class="badge dotted ' + ({approved: 'brand', pending: 'warn', rejected: 'danger', blocked: 'danger'}[u.status] || '') + '">' + ({approved: 'تأییدشده', pending: 'در انتظار', rejected: 'رد شده', blocked: 'مسدود'}[u.status] || u.status) + '</span>') + '</div>';
     }
     function itemRow(x, inline) {
