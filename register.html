@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610101215">
+<link rel="stylesheet" href="assets/app.css?v=2610101412">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610101215" defer></script><script src="assets/core.js?v=2610101215" defer></script>
+<script src="assets/data.js?v=2610101412" defer></script><script src="assets/core.js?v=2610101412" defer></script>
 </head>
 <body>
 <main class="nonav"></main>
@@ -22,7 +22,9 @@
 TY.shell({title:'', back:true, backTo:'enter.html', bell:false});
 var main=$('main'), mode=TY.qs('login')?'login':'signup', role='jobseeker';
 var oldMobile=localStorage.getItem('ty_mobile')||''; try{var ou=JSON.parse(localStorage.getItem('ty_user')||'{}');}catch(e){ou={};}
-if(TY.session()&&TY.user()&&!TY.qs('force')){location.replace('enter.html');return;}
+var nv=!!(TY.session()&&TY.user()&&TY.user().needVerify&&!TY.qs('force'));
+if(TY.session()&&TY.user()&&!TY.qs('force')&&!nv){location.replace('enter.html');return;}
+var smsFlag=null; function smsOn(){ return smsFlag||(smsFlag=TY.smsOn()); }
 function shell(inner){return '<div style="max-width:440px;margin:0 auto;padding-top:8px"><span class="mark lg">'+TY.ic('mark')+'</span>'+inner+'</div>';}
 function draw(){
   var m=TY.qs('m');
@@ -48,8 +50,8 @@ main.addEventListener('submit',function(e){
   fieldErr('mobile',mobile?'':'شماره موبایل ۱۱ رقمی را درست بنویس'); if(mode==='signup') fieldErr('name',name.length>=3?'':'نام کامل را بنویس');
   if(!mobile||(mode==='signup'&&name.length<3)) return;
   TY.needV2().then(function(ok){ if(!ok) return; b.classList.add('loading');
-    if(mode==='signup') TY.api('register',{name:name,mobile:mobile,role:role}).then(function(r){ b.classList.remove('loading');
-      if(r&&r.ok){TY.setSession(r.token,r.user);localStorage.setItem('ty_mobile',mobile);connect(r.user);return;}
+    if(mode==='signup') smsOn().then(function(on){ return TY.api('register',{name:name,mobile:mobile,role:role,sms:on?1:0}); }).then(function(r){ b.classList.remove('loading');
+      if(r&&r.ok){TY.setSession(r.token,r.user);localStorage.setItem('ty_mobile',mobile);if(r.user&&r.user.needVerify){smsCode({kind:'verify',mobile:mobile,sms:r.sms});return;}connect(r.user);return;}
       if(r&&r.error==='exists'){mode='login';oldMobile=mobile;draw();TY.toast('این شماره قبلاً عضو شده؛ وارد شو');return;}
       TY.toast(TY.errText(r),'err');
     }).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');});
@@ -64,11 +66,64 @@ function connect(u){
     '<a class="btn ghost block mt2" href="enter.html" id="later">'+(TY.store.get('ret')?'ادامه؛ بعداً وصل می‌کنم':'بعداً')+'</a>');var lt=$('#later');if(lt)lt.onclick=function(e){e.preventDefault();TY.afterLogin();};
   var n=0, iv=setInterval(function(){ if(++n>100){clearInterval(iv);return;} TY.me().then(function(r){ if(r&&r.user&&r.user.tg){clearInterval(iv);$('#tgStep').className='done';$('#tgStep .st').innerHTML=TY.ic('check','xs');$('#tgState').textContent='وصل شد';TY.toast('تلگرام وصل شد');setTimeout(function(){TY.afterLogin();},1200);} }); },4000);
 }
-function login(mobile,b){
-  TY.api('login_start',{mobile:mobile}).then(function(r){ b.classList.remove('loading');
-    if(!r||!r.ok){ if(r&&r.error==='nouser'){mode='signup';oldMobile=mobile;draw();TY.toast('با این شماره عضوی نیست؛ ثبت‌نام کن');return;} TY.toast(TY.errText(r),'err');return; }
-    if(r.via==='code') otp(mobile); else viaTg(mobile,r);
+function login(mobile,b,via){
+  smsOn().then(function(on){ return TY.api('login_start',{mobile:mobile,sms:on?1:0,via:via||undefined}); }).then(function(r){ b.classList.remove('loading');
+    if(!r||!r.ok){
+      if(r&&r.error==='nouser'){mode='signup';oldMobile=mobile;draw();TY.toast('با این شماره عضوی نیست؛ ثبت‌نام کن');return;}
+      if(r&&r.error==='sms_wait'){smsCode({kind:'login',mobile:mobile,tg:true,sms:{sent:false,error:'sms_wait',wait:r.wait}});return;}
+      if(r&&/^sms_/.test(r.error||'')){smsDown(mobile,r);return;}
+      TY.toast(TY.errText(r),'err');return; }
+    if(r.via==='sms') smsCode({kind:'login',mobile:mobile,tg:true,sms:{sent:true,resend:r.resend,ttl:r.ttl}});
+    else if(r.via==='code') otp(mobile); else viaTg(mobile,r);
   }).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');});
+}
+/* ---- ورود / تأیید شماره با پیامک (فقط وقتی سرور features.sms دارد) ---- */
+var SMS_NOTE={sms_wait:'کدی که چند لحظه پیش فرستادیم هنوز معتبر است؛ همان را وارد کن.',sms_hour:'تعداد درخواست کد برای این شماره زیاد شد. یک ساعت بعد دوباره امتحان کن یا کد را از تلگرام بگیر.',sms_fail:'ارسال پیامک الان انجام نشد. کمی بعد دوباره امتحان کن یا کد را از تلگرام بگیر.',sms_cap:'ارسال پیامک امروز موقتاً در دسترس نیست. کد را از تلگرام بگیر.',sms_busy:'ارسال پیامک الان شلوغ است؛ یک دقیقه بعد دوباره امتحان کن.'};
+function smsDown(mobile,r){
+  main.innerHTML=shell('<h1 class="h2 mt4">پیامک ارسال نشد</h1><p class="muted mt2">'+TY.esc(SMS_NOTE[r.error]||SMS_NOTE.sms_fail)+'</p>'+
+   '<button class="btn primary block lg mt6" id="dTg">'+TY.ic('send','sm')+'دریافت کد از تلگرام</button><button class="btn outline block mt2" id="dRe">دوباره امتحان کن</button><button class="btn ghost block mt2" id="dCh">شماره را عوض می‌کنم</button>');
+  $('#dTg').onclick=function(){this.classList.add('loading');login(mobile,this,'telegram');};
+  $('#dRe').onclick=function(){this.classList.add('loading');login(mobile,this);};
+  $('#dCh').onclick=function(){mode='login';oldMobile=mobile;draw();};
+}
+function mmss(n){return TY.fa(Math.floor(n/60)+':'+('0'+(n%60)).slice(-2));}
+function smsCode(o){
+  var mobile=o.mobile, kind=o.kind, left=0, tick=null, s=o.sms||{};
+  function note(t){var e=$('#smsNote');if(e){e.hidden=!t;e.querySelector('.grow').textContent=t||'';}}
+  main.innerHTML=shell('<h1 class="h2 mt4">کد تأیید</h1><p class="muted mt2">کد ۵ رقمی به شماره‌ی <b class="num" dir="ltr">'+TY.fa(mobile)+'</b> پیامک شد. کد ۵ دقیقه اعتبار دارد.</p>'+
+   '<div class="banner warn mt3" id="smsNote" hidden>'+TY.ic('alert','sm')+'<div class="grow"></div></div>'+
+   '<div class="otp mt6" id="otp" dir="ltr">'+[0,1,2,3,4].map(function(i){return '<input inputmode="numeric" maxlength="1" aria-label="رقم '+TY.fa(i+1)+'"'+(i===0?' autocomplete="one-time-code"':'')+'>';}).join('')+'</div>'+
+   '<button class="btn primary block lg mt6" id="vgo">'+(kind==='verify'?'تأیید شماره':'ورود')+'</button><button class="btn ghost block mt2" id="again" disabled></button>'+
+   (kind==='login'&&o.tg?'<button class="btn ghost block" id="tgc">'+TY.ic('send','sm')+'دریافت کد از تلگرام</button>':'')+
+   '<button class="btn ghost block" id="chg">شماره اشتباه است؟ ویرایش</button><div id="chgBox" hidden class="mt3"><div class="field" id="w_nm"><label for="nm">شماره‌ی درست</label><input class="input ltr num" id="nm" inputmode="numeric" autocomplete="tel" placeholder="09xx xxx xxxx" enterkeyhint="go"><div class="errmsg" hidden></div></div><button class="btn primary block" id="nmgo">ارسال کد به این شماره</button></div>');
+  function setLeft(n){ left=Math.max(0,n|0); clearInterval(tick); paint(); if(left>0) tick=setInterval(function(){ if(!document.body.contains($('#again'))){clearInterval(tick);return;} left--; paint(); if(left<=0) clearInterval(tick); },1000); }
+  function paint(){var a=$('#again');if(!a)return;a.disabled=left>0;a.textContent=left>0?'ارسال دوباره ('+mmss(left)+')':'ارسال دوباره‌ی کد';}
+  function apply(sm){ sm=sm||{}; if(sm.sent){ note(''); setLeft(sm.resend||60); TY.toast('کد تازه فرستاده شد'); clear(); } else { note(SMS_NOTE[sm.error]||SMS_NOTE.sms_fail); setLeft(sm.wait||(sm.error==='sms_fail'?5:60)); } }
+  var ins=TY.$$('#otp input');
+  function clear(){ins.forEach(function(x){x.value='';});ins[0].focus();}
+  if(s.sent===false){ note(SMS_NOTE[s.error]||SMS_NOTE.sms_fail); setLeft(s.wait||(s.error==='sms_fail'?5:60)); } else setLeft(s.resend||60);
+  ins[0].focus();
+  ins.forEach(function(inp,i){ inp.addEventListener('input',function(){ var v=TY.en(inp.value).replace(/\D/g,''); if(v.length>1){v.split('').slice(0,5).forEach(function(c,j){if(ins[j])ins[j].value=c;});ins[Math.min(v.length,4)].focus();} else {inp.value=v; if(v&&ins[i+1]) ins[i+1].focus();} if(ins.every(function(x){return x.value;})) $('#vgo').click(); });
+    inp.addEventListener('keydown',function(e){ if(e.key==='Backspace'&&!inp.value&&ins[i-1]) ins[i-1].focus(); }); });
+  $('#again').onclick=function(){ var b=this; b.classList.add('loading');
+    (kind==='verify'?TY.api('verify_resend',{}):TY.api('login_start',{mobile:mobile,sms:1})).then(function(r){ b.classList.remove('loading');
+      if(!r||!r.ok){ if(kind==='login'&&r&&/^sms_/.test(r.error||'')) apply({sent:false,error:r.error,wait:r.wait}); else TY.toast(TY.errText(r),'err'); return; }
+      if(kind==='verify'){ if(r.already){TY.afterLogin();return;} apply(r.sms); } else apply({sent:r.via==='sms',resend:r.resend,error:'sms_fail'}); }).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');}); };
+  var tg=$('#tgc'); if(tg) tg.onclick=function(){this.classList.add('loading');login(mobile,this,'telegram');};
+  $('#chg').onclick=function(){ if(kind==='login'){mode='login';oldMobile=mobile;draw();return;} $('#chgBox').hidden=false;this.hidden=true;$('#nm').value=mobile;$('#nm').focus(); };
+  $('#nmgo').onclick=function(){ var b=this, m=TY.mobile($('#nm').value), w=$('#w_nm'); w.classList.toggle('err',!m); var e=w.querySelector('.errmsg'); e.hidden=!!m; e.textContent=m?'':'شماره موبایل ۱۱ رقمی را درست بنویس'; if(!m) return;
+    if(m===mobile){$('#chgBox').hidden=true;$('#chg').hidden=false;return;}
+    b.classList.add('loading');
+    TY.api('change_mobile',{mobile:m}).then(function(r){ b.classList.remove('loading');
+      if(r&&r.ok){ localStorage.setItem('ty_mobile',m); var ss=TY.session(); TY.setSession(ss.token,r.user); smsCode({kind:'verify',mobile:m,sms:r.sms}); TY.toast('شماره عوض شد'); return; }
+      if(r&&r.error==='exists'){ TY.toast(r.needLogin?'این شماره قبلاً عضو شده؛ با «ورود» وارد شو':'با این شماره قبلاً ثبت‌نام شده','err'); return; }
+      TY.toast(TY.errText(r),'err'); }).catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');}); };
+  $('#vgo').onclick=function(){ var b=this, code=ins.map(function(x){return x.value;}).join(''); if(code.length<5) return; b.classList.add('loading');
+    (kind==='verify'?TY.api('verify_mobile',{code:code}):TY.api('login_verify',{mobile:mobile,code:code})).then(function(r){ b.classList.remove('loading');
+      if(r&&r.ok){ if(kind==='verify'){ var ss=TY.session(); TY.setSession(ss.token,r.user); TY.toast('شماره تأیید شد'); if(r.user&&r.user.status==='approved') TY.afterLogin(); else connect(r.user); } else { TY.setSession(r.token,r.user); TY.toast('خوش آمدی'); TY.afterLogin(); } return; }
+      var msg=r&&r.error==='code'?'کد درست نیست'+(r.left!=null?' — '+TY.fa(r.left)+' تلاش دیگر مانده':''):r&&r.error==='tries'?'تلاش‌ها تمام شد؛ کد تازه بگیر':r&&r.error==='expired'?'کد منقضی شده؛ کد تازه بگیر':TY.errText(r);
+      TY.toast(msg,'err'); clear(); if(r&&(r.error==='tries'||r.error==='expired')){ note(msg); if(left>0&&r.error!=='code') setLeft(Math.min(left,3)); } })
+    .catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');}); };
 }
 function otp(mobile){
   main.innerHTML=shell('<h1 class="h2 mt4">کد ورود</h1><p class="muted mt2">کد ۵ رقمی را ربات تخصص‌یاب در تلگرام برایت فرستاد.</p><div class="otp mt6" id="otp">'+[0,1,2,3,4].map(function(i){return '<input inputmode="numeric" maxlength="1" aria-label="رقم '+(i+1)+'"'+(i===0?' autocomplete="one-time-code"':'')+'>';}).join('')+'</div>'+
@@ -78,7 +133,7 @@ function otp(mobile){
   var ins=TY.$$('#otp input'); ins[0].focus();
   ins.forEach(function(inp,i){ inp.addEventListener('input',function(){ var v=TY.en(inp.value).replace(/\D/g,''); if(v.length>1){v.split('').slice(0,5).forEach(function(c,j){if(ins[j])ins[j].value=c;});ins[Math.min(v.length,4)].focus();} else {inp.value=v; if(v&&ins[i+1]) ins[i+1].focus();} if(ins.every(function(x){return x.value;})) $('#vgo').click(); });
     inp.addEventListener('keydown',function(e){ if(e.key==='Backspace'&&!inp.value&&ins[i-1]) ins[i-1].focus(); }); });
-  $('#again').onclick=function(){var b=this;b.classList.add('loading');login(mobile,b);};
+  $('#again').onclick=function(){var b=this;b.classList.add('loading');login(mobile,b,'telegram');};
   $('#vgo').onclick=function(){ var b=this, code=ins.map(function(x){return x.value;}).join(''); if(code.length<5) return; b.classList.add('loading');
     TY.api('login_verify',{mobile:mobile,code:code}).then(function(r){ b.classList.remove('loading'); if(r&&r.ok){TY.setSession(r.token,r.user);TY.toast('خوش آمدی');TY.afterLogin();} else {TY.toast(TY.errText(r),'err');ins.forEach(function(x){x.value='';});ins[0].focus();} })
     .catch(function(){b.classList.remove('loading');TY.toast(TY.errText(),'err');}); };
@@ -90,7 +145,7 @@ function viaTg(mobile,r){
   var n=0, iv=setInterval(function(){ if(++n>90){clearInterval(iv);expiredView(mobile);return;}
     TY.api('login_poll',{nonce:r.nonce}).then(function(p){ if(p&&p.ok&&p.token){clearInterval(iv);TY.setSession(p.token,p.user);TY.toast('خوش آمدی');TY.afterLogin();} else if(p&&p.error==='expired'){clearInterval(iv);expiredView(mobile);} }); },3500);
 }
-draw();
+if(nv){ main.innerHTML=shell(TY.skeleton(2)); TY.api('verify_resend',{}).then(function(r){ if(r&&r.ok&&r.already){TY.afterLogin();return;} if(r&&r.ok&&r.sms){smsCode({kind:'verify',mobile:TY.user().mobile,sms:r.sms});return;} if(r&&r.error==='nosms'){connect(TY.user());return;} draw(); }).catch(function(){draw();}); } else draw();
 
 });</script>
 </body>

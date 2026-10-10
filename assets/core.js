@@ -102,6 +102,10 @@
     return TY.get({action: 'ping'}).then(function (r) { var v = (r && r.v) || 1; if (r && r.bot) TY.BOT = r.bot; TY.store.set('be', {v: v, t: Date.now()}); return v; })
       .catch(function () { return c ? c.v : 0; });
   };
+  // آیا سرور ورود/تأیید با پیامک را فعال کرده؟ (ping تازه، نه کش؛ تا ۶ ثانیه صبر می‌کند و در شک «خیر» می‌گوید)
+  TY.smsOn = function () {
+    return Promise.race([TY.get({action: 'ping'}).then(function (r) { return !!(r && r.features && r.features.sms); }), new Promise(function (res) { setTimeout(function () { res(false); }, 6000); })]).catch(function () { return false; });
+  };
   TY.needV2 = function () {
     return TY.backend().then(function (v) {
       if (v >= 2) return true;
@@ -243,7 +247,7 @@
   TY.errText = function (r) {
     var e = (r && (r.error || r.detail)) || 'net';
     return ({auth: 'دوباره وارد شو', key: 'رمز ادمین نادرست است', mobile: 'شماره موبایل درست نیست', name: 'نام را بنویس', text: 'متن کامل نیست', rate: 'امروز زیاد ارسال کرده‌ای؛ کمی بعد دوباره امتحان کن',
-      target: 'این آگهی دیگر فعال نیست', owner: 'مالک اصلی را نمی‌شود برداشت', status: 'حساب تو فعال نیست', telegram: 'ارسال به تلگرام ناموفق بود: ' + ((r && r.detail) || ''), code: 'کد درست نیست', tries: 'تلاش زیاد؛ ۱۰ دقیقه بعد دوباره امتحان کن',
+      target: 'این آگهی دیگر فعال نیست', owner: 'مالک اصلی را نمی‌شود برداشت', status: 'حساب تو فعال نیست', telegram: 'ارسال به تلگرام ناموفق بود: ' + ((r && r.detail) || ''), code: 'کد درست نیست', sms_wait: 'کمی صبر کن و دوباره امتحان کن', sms_hour: 'تعداد درخواست کد زیاد شد؛ یک ساعت بعد دوباره امتحان کن', sms_cap: 'ارسال پیامک امروز موقتاً در دسترس نیست', sms_busy: 'ارسال پیامک شلوغ است؛ کمی بعد دوباره امتحان کن', sms_fail: 'ارسال پیامک انجام نشد', nosms: 'تأیید با پیامک فعال نیست', exists: 'این شماره قبلاً ثبت شده', tries: 'تلاش زیاد؛ ۱۰ دقیقه بعد دوباره امتحان کن',
       nouser: 'با این شماره عضوی پیدا نشد', blocked: 'این حساب مسدود است', expired: 'زمان ورود تمام شد؛ دوباره امتحان کن', server: 'سرور مشغول است؛ کمی بعد دوباره امتحان کن', notfound: 'این مورد دیگر وجود ندارد', limit: 'در هر بار حداکثر ۳۰ مورد', state: 'وضعیت نامعتبر است', type: 'این کار برای این مورد ممکن نیست', deleted: 'این مورد حذف شده است', op: 'این کار الان ممکن نیست', action: 'این کار الان ممکن نیست', net: 'اتصال برقرار نشد؛ دوباره امتحان کن', network: 'اتصال برقرار نشد؛ دوباره امتحان کن', oldserver: 'نسخه‌ی جدید سرور هنوز فعال نشده است', timeout: 'سرور دیر جواب داد؛ دوباره امتحان کن'})[e] || 'مشکلی پیش آمد؛ کمی بعد دوباره امتحان کن';
   };
 

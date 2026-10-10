@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610101215">
+<link rel="stylesheet" href="assets/app.css?v=2610101412">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610101215" defer></script><script src="assets/core.js?v=2610101215" defer></script>
+<script src="assets/data.js?v=2610101412" defer></script><script src="assets/core.js?v=2610101412" defer></script>
 </head>
 <body>
 <main></main>
@@ -85,7 +85,12 @@ function approved(me){
   if(feed.length) rel(feed);
   TY.feed().then(rel).catch(function(){});
 }
-function render(me){ if(!me||!me.user) return; var st=me.user.status; if(st==='approved') approved(me); else if(st==='rejected'||st==='blocked') rejected(me); else pending(me); }
+function verifyNeeded(me){
+  var u=me.user;
+  main.innerHTML='<section class="hero"><div class="eyebrow">سلام '+TY.esc(u.name||'')+'</div><h1 class="h2 mt1">شماره‌ات را تأیید کن</h1><p class="muted mt2">یک کد ۵ رقمی به شماره‌ی <b class="num" dir="ltr">'+TY.fa(u.mobile)+'</b> پیامک می‌کنیم. بعد از تأیید، درخواست عضویتت برای ادمین‌ها فرستاده می‌شود.</p></section>'+
+   '<a class="btn primary block lg mt4" href="register.html?verify=1">ارسال کد تأیید</a>';
+}
+function render(me){ if(!me||!me.user) return; var st=me.user.status; if(me.user.needVerify&&st==='pending') verifyNeeded(me); else if(st==='approved') approved(me); else if(st==='rejected'||st==='blocked') rejected(me); else pending(me); }
 if(!s) guest(); else { var c=TY.cachedMe(); if(c&&c.user) render(c); else main.innerHTML=TY.skeleton(3); TY.me().then(function(r){ if(r) render(r); else if(!TY.session()) guest(); }); TY.startPolling(render); }
 
 });</script>

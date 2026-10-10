@@ -106,7 +106,7 @@
       h += '<div class="tabs" role="tablist">' + T.map(function (t) {
         return '<button role="tab" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="cnt' + (t[3] && t[2] ? ' hot' : '') + '">' + TY.fa(t[2]) + '</span>' : '') + '</button>';
       }).join('') + '</div>';
-      if (tab === 'stats') { main.innerHTML = h + statsView(); syncBar(); return; }
+      if (tab === 'stats') { main.innerHTML = h + (feat('smsAdmin') ? '<div id="smsBox"></div>' : '') + statsView(); syncBar(); loadSms(TY.$('#smsBox')); return; }
       var canSel = (tab === 'signup' || tab === 'ads' || tab === 'cvs') && selectable().length > 1;
       if (!canSel && selMode) { selMode = false; sel = {}; }
       h += '<div class="hstack" style="margin:12px 0"><label class="inputwrap" style="flex:1">' + TY.ic('search', 'sm') + '<input class="input" id="aq" type="search" placeholder="جستجوی نام، موبایل یا متن" value="' + esc(q) + '"></label>' + (canSel ? '<button class="btn ' + (selMode ? 'primary' : 'outline') + '" id="aSel" aria-pressed="' + selMode + '">' + TY.ic('check', 'sm') + (selMode ? 'پایان انتخاب' : 'انتخاب') + '</button>' : '') + '</div>';
@@ -332,12 +332,32 @@
         if (spec.indexOf(':delete:') > 0) TY.confirm('حذف شود؟', x.msg_id ? 'از برنامه و کانال تلگرام هم پاک می‌شود.' : 'از برنامه پاک می‌شود.', 'حذف', true).then(function (y) { if (y) go(); }); else go();
       });
     }
+    /* ---------------- پیامک (وضعیت؛ کلید فقط در Script Properties است، اینجا نه نشان داده می‌شود و نه وارد) ---------------- */
+    var PROV = {ghasedak: 'قاصدک', kavenegar: 'کاوه‌نگار', relay: 'رله (سرور واسط)'};
+    function smsCard(st) {
+      if (!st || !st.ok) return '<div class="card flat mt3"><div class="h3">پیامک ورود</div><p class="small muted" style="margin:6px 0 0">وضعیت پیامک خوانده نشد.</p></div>';
+      var pct = st.cap ? Math.min(100, Math.round(100 * st.today / st.cap)) : 0, hot = pct >= 80;
+      return '<div class="card flat mt3" id="smsCard"><div class="between"><div class="h3">پیامک ورود (SMS)</div><span class="badge ' + (st.configured ? 'ok' : '') + '">' + (st.configured ? 'فعال' : 'تنظیم نشده') + '</span></div>' +
+        (st.configured ? '<dl class="kv" style="margin-top:10px"><dt>ارائه‌دهنده</dt><dd>' + esc(PROV[st.provider] || st.provider) + '</dd>' +
+          '<dt>امروز</dt><dd><span class="num">' + TY.fa(st.today) + '</span> از <span class="num">' + TY.fa(st.cap) + '</span> پیامک' +
+          '<div style="height:6px;border-radius:3px;background:var(--line,#0002);margin-top:6px;overflow:hidden"><i style="display:block;height:100%;width:' + pct + '%;background:var(' + (hot ? '--danger' : '--brand') + ')"></i></div></dd>' +
+          '<dt>آخرین ارسال موفق</dt><dd>' + (st.lastOk ? esc(TY.ago(st.lastOk)) : '—') + '</dd>' +
+          '<dt>آخرین خطا</dt><dd' + (st.lastError ? ' style="color:var(--danger)"' : '') + '>' + (st.lastError ? '<span dir="ltr" style="display:inline-block;text-align:left">' + esc(st.lastError) + '</span> · ' + esc(TY.ago(st.lastErrorAt)) : 'بدون خطا') + '</dd></dl>' :
+          '<p class="small muted" style="margin:8px 0 0">ورود فعلاً فقط با تلگرام است. برای فعال‌سازی، در Apps Script ▸ Project Settings ▸ Script properties این‌ها را بگذار: <span dir="ltr" class="num">SMS_PROVIDER</span>، <span dir="ltr" class="num">SMS_API_KEY</span>، <span dir="ltr" class="num">SMS_TEMPLATE</span>. کلید هرگز در این پنل وارد نمی‌شود.</p>') + '</div>';
+    }
+    function loadSms(box) {
+      if (!box || !feat('smsAdmin')) return;
+      box.innerHTML = '<div class="card flat mt3"><div class="sk" style="width:50%"></div></div>';
+      call('a_sms').then(function (r) { if (box.isConnected) box.innerHTML = smsCard(r); }).catch(function () { if (box.isConnected) box.innerHTML = smsCard(null); });
+    }
+    function smsSheet() { var s = TY.sheet({title: 'وضعیت پیامک', body: '<div id="smsBox2"></div>'}); loadSms(s.el.querySelector('#smsBox2')); }
     function more() {
       var s = TY.sheet({title: 'ابزارها', body: '<div class="list">' +
         '<a class="row" target="_blank" rel="noopener" href="' + esc(data.adminLink) + '"><span class="tile-ic brand">' + TY.ic('send', 'sm') + '</span><div class="grow"><div class="t">اتصال تلگرام من</div><div class="s">درخواست‌ها با دکمه‌ی ✅/❌ در تلگرام می‌آید · ' + TY.fa((data.admins || []).length) + ' ادمین متصل</div></div>' + TY.ic('external', 'sm chev') + '</a>' +
         '<button class="row" id="mAdd"><span class="tile-ic">' + TY.ic('plus', 'sm') + '</span><div class="grow"><div class="t">افزودن آگهی تلگرامی به برنامه</div><div class="s">برای آگهی‌هایی که مستقیم در کانال گذاشته‌ای</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
         '<button class="row" id="mLog"><span class="tile-ic">' + TY.ic('clock', 'sm') + '</span><div class="grow"><div class="t">رویدادهای اخیر</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
         '<button class="row" id="mPref"><span class="tile-ic">' + TY.ic('bell', 'sm') + '</span><div class="grow"><div class="t">تنظیمات اعلان ادمین</div><div class="s">انتخاب کن چه چیزهایی برای خودت بیاید</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
+        (feat('smsAdmin') ? '<button class="row" id="mSms"><span class="tile-ic">' + TY.ic('send', 'sm') + '</span><div class="grow"><div class="t">وضعیت پیامک ورود</div><div class="s">مصرف امروز، سقف و آخرین خطا</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' : '') +
         '<button class="row" id="mAdm"><span class="tile-ic">' + TY.ic('shield', 'sm') + '</span><div class="grow"><div class="t">مدیریت ادمین‌ها</div><div class="s">' + TY.fa((data.adminPeople || []).length) + ' ادمین · افزودن با شماره‌ی موبایل</div></div>' + TY.ic('fwd', 'sm chev') + '</button>' +
         '<a class="row" href="enter.html"><span class="tile-ic">' + TY.ic('eye', 'sm') + '</span><div class="grow"><div class="t">دیدن نسخه‌ی کاربر</div></div>' + TY.ic('fwd', 'sm chev') + '</a>' +
         '<button class="row" id="mOut" style="color:var(--danger)"><span class="tile-ic danger">' + TY.ic('logout', 'sm') + '</span><div class="grow"><div class="t">خروج از پنل</div></div></button></div>' +
@@ -349,6 +369,7 @@
         setTimeout(function () { TY.adminPrefsSheet(); }, 320);
       };
       s.el.querySelector('#mAdm').onclick = function () { s.close(); setTimeout(adminsSheet, 320); };
+      var mS = s.el.querySelector('#mSms'); if (mS) mS.onclick = function () { s.close(); setTimeout(smsSheet, 320); };
       s.el.querySelector('#mAdd').onclick = function () { s.close(); setTimeout(addSheet, 320); };
       s.el.querySelector('#mLog').onclick = function () { s.close(); setTimeout(logSheet, 320); };
     }
