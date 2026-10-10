@@ -578,5 +578,5 @@
     });
   }
 
-  return {norm: norm, K: K, parse: parse, extractPdf: extractPdf, extractDocx: extractDocx, decodeText: decodeText, readFile: readFile, pageLines: pageLines, buildLine: buildLine, mapTitle: mapTitle, mobileOf: mobileOf, parseSalary: parseSalary, headOf: headOf};
+  return {findCity: findCity, matchIndustry: matchIndustry, ROLE: ROLE, CITIES: CITIES, clean: clean, faSafe: faSafe, splitList: splitList, norm: norm, K: K, parse: parse, extractPdf: extractPdf, extractDocx: extractDocx, decodeText: decodeText, readFile: readFile, pageLines: pageLines, buildLine: buildLine, mapTitle: mapTitle, mobileOf: mobileOf, parseSalary: parseSalary, headOf: headOf};
 });

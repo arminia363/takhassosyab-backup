@@ -11,9 +11,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preload" href="assets/vazirmatn.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="assets/app.css?v=2610101900">
+<link rel="stylesheet" href="assets/app.css?v=2610102050">
 <script>try{var t=JSON.parse(localStorage.getItem('ty2_theme')||'null');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
-<script src="assets/data.js?v=2610101900" defer></script><script src="assets/core.js?v=2610101900" defer></script>
+<script src="assets/data.js?v=2610102050" defer></script><script src="assets/core.js?v=2610102050" defer></script>
 </head>
 <body>
 <main></main>
@@ -57,13 +57,14 @@ function rejected(me){var u=me.user,bl=u.status==='blocked',why=u.reason?'<p cla
   main.innerHTML=TY.empty(bl?'lock':'alert',bl?'دسترسی این حساب بسته شده':'درخواست عضویت تأیید نشد',bl?'اگر فکر می‌کنی اشتباه شده، به پشتیبانی پیام بده؛ بررسی می‌کنیم.':'ممکن است نام یا شماره کامل نبوده باشد. می‌توانی دوباره درخواست بدهی یا با ادمین صحبت کنی.',why+'<div class="stack" style="max-width:320px;margin:0 auto">'+(bl?'':'<a class="btn primary block" href="register.html?force=1">درخواست دوباره</a>')+'<a class="btn '+(bl?'primary':'outline')+' block" href="https://t.me/'+TY.SUPPORT+'" target="_blank" rel="noopener">پیام به پشتیبانی</a></div>');}
 function approved(me){
   var u=me.user, emp=u.role==='employer', feed=TY.cachedFeed()||[];
-  var h='<section style="padding:16px 0 4px"><div class="between"><div><div class="eyebrow">'+(emp?'کارفرما':'کارجو')+'</div><h1 class="h2">سلام، '+TY.esc((u.name||'').split(' ')[0])+'</h1></div></div></section>';
+  var h='<section style="padding:16px 0 4px"><div class="between"><div><div class="eyebrow">'+(u.isAdmin?'ادمین':emp?'کارفرما':(u.role==='jobseeker'?'کارجو':'عضو'))+'</div><h1 class="h2">سلام، '+TY.esc((u.name||'').split(' ')[0])+'</h1></div></div></section>';
   if(u.invite && !TY.store.get('inv_ok')) h+='<div class="banner brand mt3">'+TY.ic('megaphone','sm')+'<div class="grow"><b>لینک اختصاصی ورود به کانال</b>عضویتت تأیید شد. این لینک یک‌بارمصرف مخصوص توست.<div class="btnrow mt2"><a class="btn primary sm" style="flex:0 0 auto" target="_blank" rel="noopener" href="'+TY.esc(u.invite)+'" id="invGo">ورود به کانال</a><button class="btn ghost sm" style="flex:0 0 auto" id="invX">بعداً</button></div></div></div>';
   if(!u.tg) h+='<div class="banner info mt3">'+TY.ic('bell','sm')+'<div class="grow"><b>اعلان فوری روی گوشی</b>تلگرامت را وصل کن تا '+(emp?'رزومه‌های مرتبط':'آگهی‌های مرتبط')+' همان لحظه خبرت کنند.<div><a class="btn primary sm" target="_blank" rel="noopener" href="'+TY.esc(u.tgLink)+'">'+TY.ic('send','xs')+'اتصال تلگرام</a></div></div></div>';
   if(!String(u.interests||'').trim()&&!(me.mine||[]).length) h+='<div class="banner info mt3">'+TY.ic('star','sm')+'<div class="grow"><b>حوزه‌ی کاریت را انتخاب کن</b>تا فقط '+(emp?'رزومه‌های':'آگهی‌های')+' مرتبط خبرت کنیم و بالای صفحه ببینی.<div><button class="btn primary sm" id="intGo">انتخاب حوزه‌ها</button></div></div></div>';
   h+='<div class="grid2 mt4">'+
      '<a class="card" href="'+(emp?'employer.html':'jobseeker.html')+'" style="color:inherit"><span class="tile-ic brand">'+TY.ic(emp?'building':'resume','sm')+'</span><div class="h3 mt3">'+(emp?'ثبت آگهی':'ساخت رزومه')+'</div><div class="xs muted">'+(emp?'بعد از تأیید، در کانال':'انتشار یا ارسال مستقیم')+'</div></a>'+
      '<a class="card" href="'+(emp?'inbox.html?tab=inbox':'jobs.html')+'" style="color:inherit"><span class="tile-ic">'+TY.ic(emp?'inbox':'briefcase','sm')+'</span><div class="h3 mt3">'+(emp?'رزومه‌های دریافتی':'آگهی‌ها')+'</div><div class="xs muted num" id="adCnt">'+(emp?TY.fa((me.inbox||[]).length)+' رزومه':TY.fa(feed.filter(function(x){return x.type==='employer'}).length)+' آگهی فعال')+'</div></a></div>';
+  if(u.isAdmin&&!emp){h+='<div class="grid2 mt3"><a class="card" href="employer.html" style="color:inherit"><span class="tile-ic brand">'+TY.ic('building','sm')+'</span><div class="h3 mt3">ثبت آگهی</div><div class="xs muted">بعد از تأیید، در کانال</div></a><a class="card" href="inbox.html?tab=inbox" style="color:inherit"><span class="tile-ic">'+TY.ic('inbox','sm')+'</span><div class="h3 mt3">رزومه‌های دریافتی</div><div class="xs muted num">'+TY.fa((me.inbox||[]).length)+' رزومه</div></a></div>';}
   h+='<div class="section-h"><h2>مرتبط با تو</h2><a href="'+(emp?'resumes.html':'jobs.html')+'">همه'+TY.ic('fwd','xs')+'</a></div><div id="rel">'+skRows(3)+'</div>';
   if((me.mine||[]).length) h+='<div class="section-h"><h2>ارسال‌های من</h2><a href="me.html#mine">همه'+TY.ic('fwd','xs')+'</a></div><div class="list">'+me.mine.slice(0,3).map(function(m){return '<a class="row" href="me.html#mine"><span class="tile-ic">'+TY.ic(m.type==='employer'?'briefcase':'resume','sm')+'</span><div class="grow"><div class="t">'+TY.esc(m.title||'بدون عنوان')+'</div><div class="s">'+TY.ago(m.created)+'</div></div>'+TY.statusBadge(m.status)+'</a>';}).join('')+'</div>';
   main.innerHTML=h;

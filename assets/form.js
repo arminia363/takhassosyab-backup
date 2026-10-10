@@ -24,6 +24,8 @@
     nothing: 'چیز مشخصی در این فایل پیدا نشد. فرم را خودت پر کن.',
     timeout: 'خواندن فایل بیش‌ازحد طول کشید. فایل ساده‌تر یا کوچک‌تری امتحان کن.'
   };
+  var RERR_AD = {}; Object.keys(RERR).forEach(function (k) { RERR_AD[k] = RERR[k].replace(/رزومه‌ی/g, 'آگهی').replace(/رزومه/g, 'آگهی'); });
+  RERR_AD.noText += ' یا متن آگهی را در کادر «چسباندن متن» بگذار.'; RERR_AD.nothing = 'چیز مشخصی در این آگهی پیدا نشد. فرم را خودت پر کن.';
   var CITY_TAGS = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'دورکاری'];
   function toTag(s) {
     s = String(s || '').trim().replace(/^#+/, '').replace(/[،؛؟«»]/g, '').replace(/[\s\u200c\-]+/g, '_').replace(/[^0-9A-Za-z_\u0600-\u06FF]/g, '').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -69,10 +71,11 @@
     if (!st.city && user && user.city) st.city = user.city;
     var to = editItem ? '' : TY.qs('to'); if (isCV && to) { st.vis = 'direct'; st.target = to; }
     var step = 0, finished = false, confirmedDup = false;
-    var AKEY = 'auto_' + kind, auto = {}, autoPrev = null, autoBanner = true, busy = false, upMsg = '';
-    if (isCV && !editItem) { (TY.store.get(AKEY, []) || []).forEach(function (k) { auto[k] = 1; }); if (!rawDraft) auto = {}; }
+    var AKEY = 'auto_' + kind, auto = {}, autoPrev = null, autoBanner = true, busy = false, upMsg = '', pasteTxt = '', pasteOpen = false;
+    var ERR = isCV ? RERR : RERR_AD, WHAT = isCV ? 'رزومه' : 'آگهی';
+    if (!editItem) { (TY.store.get(AKEY, []) || []).forEach(function (k) { auto[k] = 1; }); if (!rawDraft) auto = {}; }
     function autoCount() { return Object.keys(auto).length; }
-    function autoKey(k) { return {dept: 'title', pos: 'title', custom: 'title', salMode: 'sal', salMin: 'sal', salMax: 'sal'}[k] || k; }
+    function autoKey(k) { return {dept: 'title', pos: 'title', custom: 'title', extra: 'title', salMode: 'sal', salMin: 'sal', salMax: 'sal'}[k] || k; }
     function dropAuto(k) { k = autoKey(k); if (auto[k]) { delete auto[k]; TY.store.set(AKEY, Object.keys(auto)); var ids = {title: ['w_dept', 'w_pos', 'w_custom'], city: ['w_city', 'w_city2'], sal: ['w_sal']}[k] || ['w_' + k]; ids.forEach(function (id) { var e = document.getElementById(id); if (e) e.classList.remove('auto'); }); } }
 
     function deptObj() { return D.depts.filter(function (d) { return d.name === st.dept; })[0]; }
@@ -224,21 +227,24 @@
     ];
 
     function uploadCard() {
-      if (!isCV || editItem || step !== 0) return '';
-      return '<section class="upcard mb" aria-labelledby="upT"><span class="tile-ic brand">' + TY.ic('resume', 'sm') + '</span><div class="grow"><b class="small" id="upT">رزومه‌ی آماده داری؟</b>' +
-        '<div class="xs muted" id="upH" style="margin:2px 0 10px">فایل PDF، Word (docx) یا متنی را انتخاب کن تا فرم خودکار پر شود. فایل فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.</div>' +
-        '<button type="button" class="btn outline" id="resumeBtn" aria-describedby="upH"' + (busy ? ' disabled' : '') + '>' + TY.ic('resume', 'sm') + 'آپلود رزومه و پر کردن خودکار</button>' +
-        '<input type="file" id="resumeFile" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" style="display:none" aria-label="انتخاب فایل رزومه">' +
+      if (editItem || step !== 0) return '';
+      var ad = !isCV, accept = '.pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
+      return '<section class="upcard mb" aria-labelledby="upT"><span class="tile-ic brand">' + TY.ic(ad ? 'building' : 'resume', 'sm') + '</span><div class="grow"><b class="small" id="upT">' + (ad ? 'آگهی آماده داری؟' : 'رزومه‌ی آماده داری؟') + '</b>' +
+        '<div class="xs muted" id="upH" style="margin:2px 0 10px">' + (ad ? 'فایل آگهی (PDF، Word با پسوند docx یا متنی) را انتخاب کن یا متن آگهی‌ای را که از تلگرام یا اینستاگرام کپی کرده‌ای بچسبان تا فرم خودکار پر شود. فایل و متن فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.' : 'فایل PDF، Word (docx) یا متنی را انتخاب کن تا فرم خودکار پر شود. فایل فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.') + '</div>' +
+        '<button type="button" class="btn outline" id="resumeBtn" aria-describedby="upH"' + (busy ? ' disabled' : '') + '>' + TY.ic(ad ? 'building' : 'resume', 'sm') + (ad ? 'آپلود آگهی و پر کردن خودکار' : 'آپلود رزومه و پر کردن خودکار') + '</button>' +
+        '<input type="file" id="resumeFile" accept="' + accept + '" style="display:none" aria-label="' + (ad ? 'انتخاب فایل آگهی' : 'انتخاب فایل رزومه') + '">' +
+        (ad ? '<details class="mt3" id="pasteBox"' + (pasteOpen ? ' open' : '') + '><summary class="small" style="cursor:pointer;min-height:32px;color:var(--brand-text);font-weight:600">یا متن آگهی را بچسبان</summary>' +
+          '<textarea class="textarea mt2" id="adPaste" rows="6" maxlength="20000" aria-label="متن آگهی" placeholder="متن آگهی را اینجا بچسبان (از تلگرام، اینستاگرام یا هر جای دیگر)">' + esc(pasteTxt) + '</textarea>' +
+          '<button type="button" class="btn dark mt2" id="adPasteBtn"' + (busy ? ' disabled' : '') + '>پر کردن از متن</button></details>' : '') +
         '<div class="xs" id="resumeStatus" role="status" aria-live="polite" style="margin-top:8px">' + esc(upMsg) + '</div></div></section>';
     }
     function autoBannerHtml() {
-      if (!isCV || !autoCount() || !autoBanner) return '';
+      if (!autoCount() || !autoBanner) return '';
       return '<div class="banner brand mb" id="autoBanner" role="status">' + TY.ic('check', 'sm') + '<div class="grow"><b>موارد به‌صورت خودکار پر شده‌اند؛ لطفاً مرور و اصلاح کن.</b>' +
-        '<div class="xs" style="margin-top:2px">کادرهای دارای برچسب «خودکار» از رزومه‌ات خوانده شده‌اند. چیزی که پیدا نشد خالی مانده و تا نرسی به مرحله‌ی آخر و ارسال را نزنی، چیزی فرستاده نمی‌شود.</div>' +
+        '<div class="xs" style="margin-top:2px">کادرهای دارای برچسب «خودکار» از ' + (isCV ? 'رزومه‌ات' : 'آگهی‌ات') + ' خوانده شده‌اند. چیزی که پیدا نشد خالی مانده و تا نرسی به مرحله‌ی آخر و ارسال را نزنی، چیزی فرستاده نمی‌شود.</div>' +
         '<div class="hstack mt2" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-autoundo>برگرداندن</button><button type="button" class="btn ghost sm" data-autook>متوجه شدم</button></div></div></div>';
     }
     function paintAuto() {
-      if (!isCV) return;
       var ids = {title: ['w_dept', 'w_pos', 'w_custom'], city: [CITY_TAGS.indexOf(st.city) >= 0 ? 'w_city' : 'w_city2'], sal: ['w_sal']};
       Object.keys(auto).forEach(function (k) {
         if (k === 'exp') { TY.$$('[data-exp]').forEach(function (i) { if (i.value) i.classList.add('auto'); }); return; }
@@ -340,25 +346,49 @@
 
     /* ---------- رزومه → فرم (همه‌چیز داخل مرورگر) ---------- */
     function setUp(msg, bad) { upMsg = msg || ''; var e = document.getElementById('resumeStatus'); if (e) { e.textContent = upMsg; e.style.color = bad ? 'var(--danger)' : ''; e.setAttribute('role', bad ? 'alert' : 'status'); } }
-    function hasContent() { return !!(st.dept || st.summary || st.headline || (st.skills || []).length || (st.exp || []).some(function (j) { return j.role || j.company; })); }
-    function importResume(file) {
-      if (busy) return; busy = true; var btn = document.getElementById('resumeBtn'); if (btn) btn.disabled = true; setUp('در حال خواندن رزومه… چند ثانیه صبر کن.');
+    function hasContent() { return isCV ? !!(st.dept || st.summary || st.headline || (st.skills || []).length || (st.exp || []).some(function (j) { return j.role || j.company; })) : !!(st.dept || st.reqs || st.company || st.hours || st.benefits); }
+    var FIELDS_CV = ['name', 'contact', 'city', 'dept', 'headline', 'summary', 'exp', 'skills', 'soft', 'degree', 'major', 'uni', 'certs', 'langs', 'salMode', 'coop', 'start', 'industry', 'age', 'military', 'link'];
+    var FIELDS_AD = ['dept', 'industry', 'company', 'city', 'coop', 'reqs', 'hours', 'salMode', 'benefits', 'contact'];
+    function importResume(src) { // src: File | {text: '...'}  (آگهی: متن چسبانده‌شده)
+      if (busy) return; busy = true; var btn = document.getElementById('resumeBtn'), pb = document.getElementById('adPasteBtn'); if (btn) btn.disabled = true; if (pb) pb.disabled = true; setUp('در حال خواندن ' + WHAT + '… چند ثانیه صبر کن.');
+      var enable = function () { var b1 = document.getElementById('resumeBtn'), b2 = document.getElementById('adPasteBtn'); if (b1) b1.disabled = false; if (b2) b2.disabled = false; };
       var to = new Promise(function (_, no) { setTimeout(function () { no({code: 'timeout'}); }, 40000); });
-      var work = loadJS('assets/resume.js').catch(function () { throw {code: 'load'}; }).then(function () {
-        return window.TYResume.readFile(file, {pdf: function () { return RLIBS.pdf().catch(function () { throw {code: 'load'}; }); }, zip: function () { return RLIBS.zip().catch(function () { throw {code: 'load'}; }); }}, {maxBytes: 5 * 1024 * 1024});
-      }).then(function (text) { return window.TYResume.parse(text, D); });
+      var isText = typeof src.text === 'string';
+      var work = loadJS('assets/resume.js').catch(function () { throw {code: 'load'}; }).then(function () { return isCV ? null : loadJS('assets/ad.js').catch(function () { throw {code: 'load'}; }); }).then(function () {
+        if (isText) { var tx = window.TYResume.norm(src.text); if ((tx.match(/[A-Za-z\u0600-\u06ff]/g) || []).length < 8) throw {code: 'empty'}; return tx; }
+        return window.TYResume.readFile(src, {pdf: function () { return RLIBS.pdf().catch(function () { throw {code: 'load'}; }); }, zip: function () { return RLIBS.zip().catch(function () { throw {code: 'load'}; }); }}, {maxBytes: 5 * 1024 * 1024});
+      }).then(function (text) { return isCV ? window.TYResume.parse(text, D) : window.TYAd.parse(text, D); });
       Promise.race([work, to]).then(function (res) {
-        busy = false; var f = res.fields, n = 0; ['name', 'contact', 'city', 'dept', 'headline', 'summary', 'exp', 'skills', 'soft', 'degree', 'major', 'uni', 'certs', 'langs', 'salMode', 'coop', 'start', 'industry', 'age', 'military', 'link'].forEach(function (k) { if (f[k] && (!Array.isArray(f[k]) || f[k].length)) n++; });
-        if (n < 2) { setUp(RERR.nothing, true); if (btn) btn.disabled = false; return; }
+        busy = false; var f = res.fields, n = 0; (isCV ? FIELDS_CV : FIELDS_AD).forEach(function (k) { if (f[k] && (!Array.isArray(f[k]) || f[k].length)) n++; });
+        if (n < 2) { setUp(ERR.nothing, true); enable(); return; }
         var go = function () { applyResume(f); };
-        if (hasContent()) TY.confirm('فرم قبلاً پر شده', 'مواردی که از رزومه خوانده شد جایگزین مقدارهای فعلی می‌شود. «برگرداندن» هم می‌توانی بزنی.', 'پر کردن از رزومه').then(function (y) { if (y) go(); else { setUp(''); if (btn) btn.disabled = false; } });
+        if (hasContent()) TY.confirm('فرم قبلاً پر شده', 'مواردی که از ' + WHAT + ' خوانده شد جایگزین مقدارهای فعلی می‌شود. «برگرداندن» هم می‌توانی بزنی.', 'پر کردن از ' + WHAT).then(function (y) { if (y) go(); else { setUp(''); enable(); } });
         else go();
       }).catch(function (e) {
-        busy = false; var c = e && e.code; setUp(RERR[c] || RERR.corrupt, true); var b2 = document.getElementById('resumeBtn'); if (b2) b2.disabled = false;
-        try { if (window.console && !RERR[c]) console.warn('resume import failed', e); } catch (x) {}
+        busy = false; var c = e && e.code; setUp(ERR[c] || ERR.corrupt, true); enable();
+        try { if (window.console && !ERR[c]) console.warn('import failed', e); } catch (x) {}
       });
     }
+    function applyAd(f) {
+      autoPrev = JSON.parse(JSON.stringify(st)); var A = {}, userDefault = function (cur, def) { return !String(cur || '').trim() || (def && String(cur).trim() === String(def).trim()); };
+      var put = function (k, v, a) { st[k] = v; A[a || k] = 1; };
+      if (f.contact && userDefault(st.contact, user && user.mobile)) put('contact', f.contact);
+      if (f.city && userDefault(st.city, user && user.city)) put('city', f.city);
+      if (f.dept) { st.dept = f.dept; st.pos = f.pos || ''; st.custom = f.pos === 'سایر' ? (f.custom || '') : ''; st.extra = f.extra || ''; A.title = 1; }
+      ['industry', 'company', 'area', 'hours', 'reqs', 'benefits'].forEach(function (k) { if (f[k]) put(k, f[k]); });
+      if (f.coop && f.coop.length) put('coop', f.coop.slice());
+      if (f.urgent) put('urgent', true);
+      if (f.salMode === 'range') { st.salMode = 'range'; st.salMin = f.salMin; st.salMax = f.salMax; A.sal = 1; } else if (f.salMode === 'agree') { st.salMode = 'agree'; A.sal = 1; }
+      afterApply(A, 'آگهی');
+    }
+    function afterApply(A, what) {
+      auto = A; autoBanner = true; TY.store.set(AKEY, Object.keys(A)); upMsg = ''; pasteTxt = ''; pasteOpen = false; save();
+      step = 0; try { history.replaceState({fstep: 0}, ''); } catch (e) {} render(); window.scrollTo(0, 0);
+      TY.toast(TY.fa(Object.keys(A).length) + ' مورد از ' + what + ' پر شد؛ لطفاً مرور و اصلاح کن');
+      var ab = document.getElementById('autoBanner'); if (ab) { ab.setAttribute('tabindex', '-1'); ab.focus({preventScroll: true}); }
+    }
     function applyResume(f) {
+      if (!isCV) return applyAd(f);
       autoPrev = JSON.parse(JSON.stringify(st)); var A = {}, userDefault = function (cur, def) { return !String(cur || '').trim() || (def && String(cur).trim() === String(def).trim()); };
       var put = function (k, v, a) { st[k] = v; A[a || k] = 1; };
       if (f.name && userDefault(st.name, user && user.name)) put('name', f.name);
@@ -369,10 +399,7 @@
       ['skills', 'soft', 'coop'].forEach(function (k) { if (f[k] && f[k].length) put(k, f[k].slice()); });
       if (f.exp && f.exp.length) { st.exp = f.exp.map(function (j) { return {role: j.role || '', company: j.company || '', years: j.years || '', ach: j.ach || ''}; }); A.exp = 1; }
       if (f.salMode === 'range') { st.salMode = 'range'; st.salMin = f.salMin; st.salMax = f.salMax; A.sal = 1; } else if (f.salMode === 'agree') { st.salMode = 'agree'; A.sal = 1; }
-      auto = A; autoBanner = true; TY.store.set(AKEY, Object.keys(A)); upMsg = ''; save();
-      step = 0; try { history.replaceState({fstep: 0}, ''); } catch (e) {} render(); window.scrollTo(0, 0);
-      TY.toast(TY.fa(Object.keys(A).length) + ' مورد از رزومه پر شد؛ لطفاً مرور و اصلاح کن');
-      var ab = document.getElementById('autoBanner'); if (ab) { ab.setAttribute('tabindex', '-1'); ab.focus({preventScroll: true}); }
+      afterApply(A, 'رزومه');
     }
     function undoAuto() { if (!autoPrev) return; st = autoPrev; autoPrev = null; auto = {}; TY.store.del(AKEY); save(); upMsg = ''; render(); TY.toast('به حالت قبل برگشت'); }
 
@@ -387,6 +414,7 @@
     main.addEventListener('click', function (e) {
       if (e.target.closest('[data-newdraft]')) { TY.store.del(KEY); TY.store.del(AKEY); auto = {}; hadDraft = false; st = freshSt(); render(); return; }
       if (e.target.closest('[data-uselast]')) { st = JSON.parse(JSON.stringify(lastSt)); delete st.target; if (st.vis === 'direct') st.vis = 'channel'; if (!isCV) st.vis = 'channel'; save(); render(); TY.toast('پر شد؛ هر چه لازم است عوض کن'); return; }
+      if (e.target.closest('#adPasteBtn')) { var pa = document.getElementById('adPaste'); var pv0 = pa ? pa.value.trim() : ''; if (!pv0) { setUp('اول متن آگهی را در کادر بچسبان.', true); if (pa) pa.focus(); return; } pasteTxt = pa.value; pasteOpen = true; importResume({text: pv0}); return; }
       if (e.target.closest('#resumeBtn')) { var fi = document.getElementById('resumeFile'); if (fi) fi.click(); return; }
       if (e.target.closest('[data-autoundo]')) { undoAuto(); return; }
       if (e.target.closest('[data-autook]')) { autoBanner = false; var ab = document.getElementById('autoBanner'); if (ab) ab.remove(); return; }

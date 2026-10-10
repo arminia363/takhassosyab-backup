@@ -19,6 +19,7 @@
   TY.ago = function (s) {
     var d = TY.parseDate(s); if (!d) return '';
     var m = Math.round((Date.now() - d.getTime()) / 60000);
+    if (m < -30 && m > -300) m += 210; /* old rows saved 3.5h ahead */
     if (m < 1) return 'همین حالا'; if (m < 60) return TY.fa(m) + ' دقیقه پیش';
     var h = Math.round(m / 60); if (h < 24) return TY.fa(h) + ' ساعت پیش';
     var dd = Math.round(h / 24); if (dd === 1) return 'دیروز'; if (dd < 7) return TY.fa(dd) + ' روز پیش';
