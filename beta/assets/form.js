@@ -13,11 +13,15 @@
     zip: function () { return loadJS('assets/vendor/jszip.min.js').then(function () { return window.JSZip; }); }
   };
   var RERR = {
-    type: 'فقط فایل PDF، Word (با پسوند docx) یا متنی (txt) پشتیبانی می‌شود.',
+    type: 'فقط فایل PDF، Word (با پسوند docx)، متنی (txt) یا عکس (jpg، png، webp) پشتیبانی می‌شود.',
     doc: 'فایل Word قدیمی (doc) خوانده نمی‌شود. آن را به‌صورت DOCX یا PDF ذخیره کن و دوباره امتحان کن.',
-    size: 'حجم فایل بیشتر از ۵ مگابایت است. فایل کوچک‌تری انتخاب کن.',
+    size: 'حجم فایل بیشتر از حد مجاز است (عکس تا ۱۵، PDF تا ۱۲ و Word یا متن تا ۵ مگابایت). فایل کوچک‌تری انتخاب کن.',
     empty: 'این فایل خالی است.',
-    noText: 'این فایل متن ندارد؛ احتمالاً اسکن یا عکس است و فعلاً خوانده نمی‌شود. فایل PDF یا Word اصلی رزومه را انتخاب کن، یا فرم را دستی پر کن.',
+    noText: 'این فایل متن ندارد؛ احتمالاً اسکن است. فایل PDF یا Word اصلی رزومه را انتخاب کن، یا عکس رزومه را بده، یا فرم را دستی پر کن.',
+    ocrEmpty: 'در این تصویر متنی پیدا نشد. عکس را واضح‌تر، صاف و با نور کافی بگیر (تمام صفحه داخل کادر باشد) و دوباره امتحان کن، یا فرم را دستی پر کن.',
+    ocr: 'خواندن تصویر انجام نشد. عکس دیگری امتحان کن یا فرم را دستی پر کن.',
+    ocrNothing: 'از روی این تصویر چیز مشخصی خوانده نشد. عکس را واضح‌تر و صاف بگیر (کل صفحه داخل کادر و با نور کافی) یا فرم را خودت پر کن.',
+    cancel: 'خواندن تصویر لغو شد.',
     password: 'این PDF رمز دارد. نسخه‌ی بدون رمز را انتخاب کن.',
     corrupt: 'فایل خراب است یا قابل خواندن نیست. یک فایل دیگر امتحان کن.',
     load: 'بخش خواندن رزومه بارگذاری نشد. اینترنتت را بررسی کن و دوباره امتحان کن.',
@@ -25,7 +29,7 @@
     timeout: 'خواندن فایل بیش‌ازحد طول کشید. فایل ساده‌تر یا کوچک‌تری امتحان کن.'
   };
   var RERR_AD = {}; Object.keys(RERR).forEach(function (k) { RERR_AD[k] = RERR[k].replace(/رزومه‌ی/g, 'آگهی').replace(/رزومه/g, 'آگهی'); });
-  RERR_AD.noText += ' یا متن آگهی را در کادر «چسباندن متن» بگذار.'; RERR_AD.nothing = 'چیز مشخصی در این آگهی پیدا نشد. فرم را خودت پر کن.';
+  RERR_AD.noText += ' یا متن آگهی را در کادر «چسباندن متن» بگذار.'; RERR_AD.ocrEmpty += ' یا متن آگهی را در کادر «چسباندن متن» بگذار.'; RERR_AD.ocrNothing = RERR_AD.ocrNothing.replace('فرم را خودت پر کن.', 'متن آگهی را در کادر «چسباندن متن» بگذار یا فرم را خودت پر کن.'); RERR_AD.nothing = 'چیز مشخصی در این آگهی پیدا نشد. فرم را خودت پر کن.';
   var CITY_TAGS = ['تهران', 'مشهد', 'اصفهان', 'شیراز', 'تبریز', 'کرج', 'دورکاری'];
   function toTag(s) {
     s = String(s || '').trim().replace(/^#+/, '').replace(/[،؛؟«»]/g, '').replace(/[\s\u200c\-]+/g, '_').replace(/[^0-9A-Za-z_\u0600-\u06FF]/g, '').replace(/_+/g, '_').replace(/^_|_$/g, '');
@@ -71,7 +75,7 @@
     if (!st.city && user && user.city) st.city = user.city;
     var to = editItem ? '' : TY.qs('to'); if (isCV && to) { st.vis = 'direct'; st.target = to; }
     var step = 0, finished = false, confirmedDup = false;
-    var AKEY = 'auto_' + kind, auto = {}, autoPrev = null, autoBanner = true, busy = false, upMsg = '', pasteTxt = '', pasteOpen = false;
+    var AKEY = 'auto_' + kind, auto = {}, autoPrev = null, autoBanner = true, busy = false, ocrJob = null, ocrUsed = false, upMsg = '', pasteTxt = '', pasteOpen = false;
     var ERR = isCV ? RERR : RERR_AD, WHAT = isCV ? 'رزومه' : 'آگهی';
     if (!editItem) { (TY.store.get(AKEY, []) || []).forEach(function (k) { auto[k] = 1; }); if (!rawDraft) auto = {}; }
     function autoCount() { return Object.keys(auto).length; }
@@ -228,20 +232,23 @@
 
     function uploadCard() {
       if (editItem || step !== 0) return '';
-      var ad = !isCV, accept = '.pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
+      var ad = !isCV, accept = 'image/*,.jpg,.jpeg,.png,.webp,.pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
       return '<section class="upcard mb" aria-labelledby="upT"><span class="tile-ic brand">' + TY.ic(ad ? 'building' : 'resume', 'sm') + '</span><div class="grow"><b class="small" id="upT">' + (ad ? 'آگهی آماده داری؟' : 'رزومه‌ی آماده داری؟') + '</b>' +
-        '<div class="xs muted" id="upH" style="margin:2px 0 10px">' + (ad ? 'فایل آگهی (PDF، Word با پسوند docx یا متنی) را انتخاب کن یا متن آگهی‌ای را که از تلگرام یا اینستاگرام کپی کرده‌ای بچسبان تا فرم خودکار پر شود. فایل و متن فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.' : 'فایل PDF، Word (docx) یا متنی را انتخاب کن تا فرم خودکار پر شود. فایل فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.') + '</div>' +
+        '<div class="xs muted" id="upH" style="margin:2px 0 10px">' + (ad ? 'عکس یا اسکرین‌شات آگهی، فایل آگهی (PDF، Word با پسوند docx یا متنی) را انتخاب کن یا متن آگهی‌ای را که از تلگرام یا اینستاگرام کپی کرده‌ای بچسبان تا فرم خودکار پر شود. عکس‌ها با خواندن فارسی روی خود گوشی بررسی می‌شوند و دقت کمتری دارند. فایل و متن فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.' : 'فایل PDF، Word (docx)، متنی یا عکس و اسکن رزومه را انتخاب کن تا فرم خودکار پر شود. عکس و اسکن با خواندن فارسی روی خود گوشی بررسی می‌شوند و دقت کمتری دارند. فایل فقط روی همین گوشی خوانده می‌شود و جایی ارسال نمی‌شود.') + '</div>' +
         '<button type="button" class="btn outline" id="resumeBtn" aria-describedby="upH"' + (busy ? ' disabled' : '') + '>' + TY.ic(ad ? 'building' : 'resume', 'sm') + (ad ? 'آپلود آگهی و پر کردن خودکار' : 'آپلود رزومه و پر کردن خودکار') + '</button>' +
         '<input type="file" id="resumeFile" accept="' + accept + '" style="display:none" aria-label="' + (ad ? 'انتخاب فایل آگهی' : 'انتخاب فایل رزومه') + '">' +
         (ad ? '<details class="mt3" id="pasteBox"' + (pasteOpen ? ' open' : '') + '><summary class="small" style="cursor:pointer;min-height:32px;color:var(--brand-text);font-weight:600">یا متن آگهی را بچسبان</summary>' +
           '<textarea class="textarea mt2" id="adPaste" rows="6" maxlength="20000" aria-label="متن آگهی" placeholder="متن آگهی را اینجا بچسبان (از تلگرام، اینستاگرام یا هر جای دیگر)">' + esc(pasteTxt) + '</textarea>' +
           '<button type="button" class="btn dark mt2" id="adPasteBtn"' + (busy ? ' disabled' : '') + '>پر کردن از متن</button></details>' : '') +
-        '<div class="xs" id="resumeStatus" role="status" aria-live="polite" style="margin-top:8px">' + esc(upMsg) + '</div></div></section>';
+        '<div class="xs" id="resumeStatus" role="status" aria-live="polite" style="margin-top:8px">' + esc(upMsg) + '</div>' +
+        '<div id="ocrBar" class="mt2" hidden><div style="height:6px;border-radius:3px;background:var(--line,#ddd);overflow:hidden" aria-hidden="true"><div id="ocrFill" style="height:100%;width:0;background:var(--brand,#2563eb);transition:width .3s"></div></div>' +
+        '<button type="button" class="btn ghost sm mt2" id="ocrCancel">لغو</button></div></div></section>';
     }
     function autoBannerHtml() {
       if (!autoCount() || !autoBanner) return '';
       return '<div class="banner brand mb" id="autoBanner" role="status">' + TY.ic('check', 'sm') + '<div class="grow"><b>موارد به‌صورت خودکار پر شده‌اند؛ لطفاً مرور و اصلاح کن.</b>' +
         '<div class="xs" style="margin-top:2px">کادرهای دارای برچسب «خودکار» از ' + (isCV ? 'رزومه‌ات' : 'آگهی‌ات') + ' خوانده شده‌اند. چیزی که پیدا نشد خالی مانده و تا نرسی به مرحله‌ی آخر و ارسال را نزنی، چیزی فرستاده نمی‌شود.</div>' +
+        (ocrUsed ? '<div class="xs" id="ocrWarn" style="margin-top:6px;font-weight:600">⚠️ این اطلاعات از روی عکس یا اسکن خوانده شده و ممکن است غلط داشته باشد (مخصوصاً شماره‌ها، اسم‌ها و حقوق). همه‌ی کادرها را با دقت یک‌بار بررسی و اصلاح کن.</div>' : '') +
         '<div class="hstack mt2" style="gap:8px;flex-wrap:wrap"><button type="button" class="btn ghost sm" data-autoundo>برگرداندن</button><button type="button" class="btn ghost sm" data-autook>متوجه شدم</button></div></div></div>';
     }
     function paintAuto() {
@@ -352,20 +359,41 @@
     function importResume(src) { // src: File | {text: '...'}  (آگهی: متن چسبانده‌شده)
       if (busy) return; busy = true; var btn = document.getElementById('resumeBtn'), pb = document.getElementById('adPasteBtn'); if (btn) btn.disabled = true; if (pb) pb.disabled = true; setUp('در حال خواندن ' + WHAT + '… چند ثانیه صبر کن.');
       var enable = function () { var b1 = document.getElementById('resumeBtn'), b2 = document.getElementById('adPasteBtn'); if (b1) b1.disabled = false; if (b2) b2.disabled = false; };
-      var to = new Promise(function (_, no) { setTimeout(function () { no({code: 'timeout'}); }, 40000); });
-      var isText = typeof src.text === 'string';
+      var tid, rejTO, to = new Promise(function (_, no) { rejTO = no; });
+      var arm = function (ms) { clearTimeout(tid); tid = setTimeout(function () { rejTO({code: 'timeout'}); if (ocrJob) ocrJob.cancel(); }, ms); }; arm(40000);
+      var isText = typeof src.text === 'string', viaOcr = false;
+      var nm = String(src.name || '').toLowerCase(), ty = String(src.type || '').toLowerCase();
+      var isImg = !isText && (/^image\//.test(ty) || /\.(jpe?g|png|webp|bmp|gif)$/.test(nm)), isPdf = !isText && (ty === 'application/pdf' || /\.pdf$/.test(nm));
+      var libs = {pdf: function () { return RLIBS.pdf().catch(function () { throw {code: 'load'}; }); }, zip: function () { return RLIBS.zip().catch(function () { throw {code: 'load'}; }); }};
+      var ocrUi = function (pct, lab) { var bar = document.getElementById('ocrBar'), fl = document.getElementById('ocrFill'); if (bar) bar.hidden = false; if (fl) fl.style.width = pct + '%'; setUp(lab === 'load' ? 'در حال آماده‌سازی خواندن تصویر… ' + TY.fa(pct) + '٪ (بار اول چند مگابایت دانلود می‌شود و بعدش روی گوشی می‌ماند)' : 'در حال خواندن تصویر… ' + TY.fa(pct) + '٪'); };
+      var ocrDone = function () { var bar = document.getElementById('ocrBar'); if (bar) bar.hidden = true; ocrJob = null; };
+      var runOcr = function (getSources) {
+        viaOcr = true; arm(300000); ocrUi(1, 'load');
+        return loadJS('assets/ocr.js').catch(function () { throw {code: 'load'}; }).then(function () { return getSources(); }).then(function (srcs) {
+          ocrJob = window.TYOcr.start(srcs, {onProgress: ocrUi, vocab: JSON.stringify(D).match(/[A-Za-z][A-Za-z0-9+#]{1,}/g)}); return ocrJob.promise;
+        }).then(function (r) {
+          ocrDone(); var tx = window.TYResume.norm(r.text); if ((tx.match(/[A-Za-z\u0600-\u06ff]/g) || []).length < 20) throw {code: 'ocrEmpty'}; return tx;
+        }, function (e) { ocrDone(); throw e; });
+      };
       var work = loadJS('assets/resume.js').catch(function () { throw {code: 'load'}; }).then(function () { return isCV ? null : loadJS('assets/ad.js').catch(function () { throw {code: 'load'}; }); }).then(function () {
         if (isText) { var tx = window.TYResume.norm(src.text); if ((tx.match(/[A-Za-z\u0600-\u06ff]/g) || []).length < 8) throw {code: 'empty'}; return tx; }
-        return window.TYResume.readFile(src, {pdf: function () { return RLIBS.pdf().catch(function () { throw {code: 'load'}; }); }, zip: function () { return RLIBS.zip().catch(function () { throw {code: 'load'}; }); }}, {maxBytes: 5 * 1024 * 1024});
+        if (isImg) { if (!src.size) throw {code: 'empty'}; if (src.size > 15 * 1024 * 1024) throw {code: 'size'}; return runOcr(function () { return [src]; }); }
+        return window.TYResume.readFile(src, libs, {maxBytes: 5 * 1024 * 1024}).catch(function (e) {
+          if (!(e && e.code === 'noText' && isPdf)) throw e;
+          return runOcr(function () { // scanned PDF: render the first pages to canvas, then OCR them
+            return loadJS('assets/ocr.js').then(function () { return Promise.all([src.arrayBuffer(), libs.pdf()]); }).then(function (r) { return window.TYOcr.pdfPages(r[1], r[0], 3); }).then(function (o) { return o.pages; })
+              .catch(function (x) { throw x && x.code ? x : {code: 'corrupt'}; });
+          });
+        });
       }).then(function (text) { return isCV ? window.TYResume.parse(text, D) : window.TYAd.parse(text, D); });
       Promise.race([work, to]).then(function (res) {
-        busy = false; var f = res.fields, n = 0; (isCV ? FIELDS_CV : FIELDS_AD).forEach(function (k) { if (f[k] && (!Array.isArray(f[k]) || f[k].length)) n++; });
-        if (n < 2) { setUp(ERR.nothing, true); enable(); return; }
+        clearTimeout(tid); busy = false; ocrUsed = viaOcr; var f = res.fields, n = 0; (isCV ? FIELDS_CV : FIELDS_AD).forEach(function (k) { if (f[k] && (!Array.isArray(f[k]) || f[k].length)) n++; });
+        if (n < 2) { setUp(viaOcr ? ERR.ocrNothing : ERR.nothing, true); enable(); return; }
         var go = function () { applyResume(f); };
         if (hasContent()) TY.confirm('فرم قبلاً پر شده', 'مواردی که از ' + WHAT + ' خوانده شد جایگزین مقدارهای فعلی می‌شود. «برگرداندن» هم می‌توانی بزنی.', 'پر کردن از ' + WHAT).then(function (y) { if (y) go(); else { setUp(''); enable(); } });
         else go();
       }).catch(function (e) {
-        busy = false; var c = e && e.code; setUp(ERR[c] || ERR.corrupt, true); enable();
+        clearTimeout(tid); busy = false; ocrDone(); var c = e && e.code; setUp(ERR[c] || ERR.corrupt, c !== 'cancel'); enable();
         try { if (window.console && !ERR[c]) console.warn('import failed', e); } catch (x) {}
       });
     }
@@ -415,6 +443,7 @@
       if (e.target.closest('[data-newdraft]')) { TY.store.del(KEY); TY.store.del(AKEY); auto = {}; hadDraft = false; st = freshSt(); render(); return; }
       if (e.target.closest('[data-uselast]')) { st = JSON.parse(JSON.stringify(lastSt)); delete st.target; if (st.vis === 'direct') st.vis = 'channel'; if (!isCV) st.vis = 'channel'; save(); render(); TY.toast('پر شد؛ هر چه لازم است عوض کن'); return; }
       if (e.target.closest('#adPasteBtn')) { var pa = document.getElementById('adPaste'); var pv0 = pa ? pa.value.trim() : ''; if (!pv0) { setUp('اول متن آگهی را در کادر بچسبان.', true); if (pa) pa.focus(); return; } pasteTxt = pa.value; pasteOpen = true; importResume({text: pv0}); return; }
+      if (e.target.closest('#ocrCancel')) { if (ocrJob) ocrJob.cancel(); return; }
       if (e.target.closest('#resumeBtn')) { var fi = document.getElementById('resumeFile'); if (fi) fi.click(); return; }
       if (e.target.closest('[data-autoundo]')) { undoAuto(); return; }
       if (e.target.closest('[data-autook]')) { autoBanner = false; var ab = document.getElementById('autoBanner'); if (ab) ab.remove(); return; }

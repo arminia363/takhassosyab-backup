@@ -558,7 +558,7 @@
     var max = opt.maxBytes || 5 * 1024 * 1024, nm = String(file.name || '').toLowerCase(), ty = String(file.type || '').toLowerCase();
     var kind = /\.pdf$/.test(nm) || ty === 'application/pdf' ? 'pdf' : /\.docx$/.test(nm) || /wordprocessingml/.test(ty) ? 'docx' : /\.txt$/.test(nm) || ty === 'text/plain' ? 'txt' : /\.doc$/.test(nm) || ty === 'application/msword' ? 'doc' : '';
     if (!kind) return Promise.reject(fail('type')); if (kind === 'doc') return Promise.reject(fail('doc'));
-    if (file.size > max) return Promise.reject(fail('size')); if (!file.size) return Promise.reject(fail('empty'));
+    if (file.size > (kind === 'pdf' ? (opt.maxPdf || 12 * 1024 * 1024) : max)) return Promise.reject(fail('size')); if (!file.size) return Promise.reject(fail('empty'));
     return file.arrayBuffer().then(function (buf) {
       if (kind === 'txt') return decodeText(buf);
       if (kind === 'pdf') {
