@@ -2,6 +2,29 @@
 (function () {
   'use strict';
   var TY = window.TY;
+  /* بندانگشتی کارت تصویری (فقط آیتم‌هایی که سرور img:1 داده): دسته‌ای و تنبل گرفته می‌شود و در localStorage کش می‌ماند */
+  (function () {
+    var st = document.createElement('style'); st.textContent = '.cth{flex:none;width:52px;height:65px;border-radius:10px;background:var(--surface-2) center/cover no-repeat;border:1px solid var(--line)}.cardfull{display:block;width:100%;max-width:360px;margin:0 auto 14px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);aspect-ratio:4/5;object-fit:cover}';
+    document.head.appendChild(st);
+    var pending = {};
+    TY.fillThumbs = function (root) {
+      var cache = TY.store.get('thc', {}) || {}, need = [];
+      (root || document).querySelectorAll('[data-th]').forEach(function (el) {
+        var id = el.getAttribute('data-th'); if (cache[id]) el.style.backgroundImage = 'url(' + cache[id] + ')'; else if (!pending[id]) need.push(id);
+      });
+      need = need.filter(function (v, i, a) { return a.indexOf(v) === i; });
+      for (var i = 0; i < need.length; i += 24) (function (ids) {
+        ids.forEach(function (x) { pending[x] = 1; });
+        TY.api('thumbs', {ids: ids}).then(function (r) {
+          ids.forEach(function (x) { delete pending[x]; });
+          if (!r || !r.ok) return; var c = TY.store.get('thc', {}) || {}, keys = Object.keys(c);
+          if (keys.length > 60) keys.slice(0, keys.length - 30).forEach(function (k) { delete c[k]; });
+          Object.keys(r.thumbs || {}).forEach(function (k) { c[k] = r.thumbs[k]; }); TY.store.set('thc', c);
+          (root || document).querySelectorAll('[data-th]').forEach(function (el) { var v = c[el.getAttribute('data-th')]; if (v) el.style.backgroundImage = 'url(' + v + ')'; });
+        }).catch(function () { ids.forEach(function (x) { delete pending[x]; }); });
+      })(need.slice(i, i + 24));
+    };
+  })();
   TY.feedPage = function (o) {
     var type = o.type, isSaved = type === 'saved';
     TY.shell({title: o.title, nav: o.nav, actions: ''});
@@ -38,7 +61,7 @@
       var body = TY.cleanText(TY.bodyOf(it.text)).split('\n').filter(function (l) { l = l.trim(); return l && !/عنوان/.test(l) && l !== it.title && !/^(راه ارتباط|تماس|نام)\s*:/.test(l); }).map(function (l) { return l.replace(/^•\s*/, ''); }).join(' · ');
       var fresh = (Date.now() - (TY.parseDate(it.created) || 0)) < 36e5 * 24;
       return '<article class="item" tabindex="0" data-id="' + TY.esc(it.id) + '"><div class="top">' + (fresh ? '<span class="new" title="تازه"></span>' : '') +
-        '<div class="ttl">' + TY.esc(it.title || 'بدون عنوان') + '</div>' +
+        '<div class="ttl">' + TY.esc(it.title || 'بدون عنوان') + '</div>' + (it.img ? '<span class="cth" data-th="' + TY.esc(it.id) + '" role="img" aria-label="کارت تصویری"></span>' : '') +
         '<button class="savebtn" data-save aria-label="ذخیره" aria-pressed="' + TY.saved.has(it.id) + '">' + TY.ic('bookmark', 'sm') + '</button></div>' +
         '<div class="meta">' + (it.city ? '<span>' + TY.ic('pin', 'xs') + TY.esc(it.city) + '</span>' : '') + (it.created ? '<span>' + TY.ic('clock', 'xs') + TY.ago(it.created) + '</span>' : '') + '</div>' +
         '<div class="snip">' + TY.esc(TY.fa(body)) + '</div>' +
@@ -59,6 +82,7 @@
       }
       listEl.classList.add('cols');
       listEl.innerHTML = rows.slice(0, state.lim).map(card).join('') + (rows.length > state.lim ? '<button class="btn outline block" id="more" style="grid-column:1/-1">نمایش بیشتر (' + TY.fa(rows.length - state.lim) + ' مورد دیگر)</button>' : '');
+      TY.fillThumbs(listEl);
     }
     function find(id) { return state.items.filter(function (x) { return String(x.id) === String(id); })[0]; }
 
@@ -95,11 +119,12 @@
         (it.city ? '<span class="hstack" style="gap:4px">' + TY.ic('pin', 'xs') + TY.esc(it.city) + '</span>' : '') +
         (it.created ? '<span class="hstack" style="gap:4px">' + TY.ic('clock', 'xs') + TY.ago(it.created) + '</span>' : '') +
         cats.map(function (c) { return '<span class="badge">' + TY.esc(TY.catName(c)) + '</span>'; }).join('') + '</div>' +
-        '<div class="posttext">' + TY.richText(it.text) + '</div>' +
+        (it.img ? '<img class="cardfull" id="cardFull" alt="کارت تصویری" hidden>' : '') + '<div class="posttext">' + TY.richText(it.text) + '</div>' +
         (it.msg ? '<a class="btn ghost sm mt4" target="_blank" rel="noopener" href="https://t.me/' + TY.CHANNEL + '/' + TY.esc(it.msg) + '">' + TY.ic('megaphone', 'xs') + 'دیدن در کانال</a>' : '') +
         (isJob && sent && !own ? '<div class="banner brand mt3">' + TY.ic('check', 'sm') + '<div class="grow">رزومه‌ات را برای این آگهی فرستاده‌ای · ' + TY.ago(sent) + '</div></div>' : '') +
         (isJob && !it.dm ? '<p class="help mt3">این آگهی از کانال آمده؛ رزومه‌ات از طریق ادمین به کارفرما می‌رسد.</p>' : '');
       var s = TY.sheet({title: it.title || (isJob ? 'آگهی' : 'رزومه'), body: body, footer: foot, headExtra: head, onClose: function () { try { if (/[?&]id=/.test(location.search)) history.replaceState(history.state, '', location.pathname); } catch (e) {} }});
+      if (it.img) { var cf = s.el.querySelector('#cardFull'), tc = (TY.store.get('thc', {}) || {})[it.id]; if (cf) { if (tc) { cf.src = tc; cf.hidden = false; } TY.api('img', {id: it.id}).then(function (r) { if (r && r.ok && cf.isConnected) { cf.src = r.image; cf.hidden = false; } }).catch(function () {}); } }
       s.el.querySelector('[data-share]').onclick = function () { TY.share(it.title, location.origin + location.pathname + '?id=' + encodeURIComponent(it.id)); };
       foot.querySelector('[data-save2]').onclick = function () { var on = TY.saved.toggle(it); this.innerHTML = TY.ic('bookmark', 'sm') + (on ? 'ذخیره شده' : 'ذخیره'); TY.toast(on ? 'ذخیره شد' : 'برداشته شد'); paint(); };
       var ap = foot.querySelector('[data-apply]'); if (ap) ap.onclick = function () { if (sent) TY.confirm('قبلاً فرستاده‌ای', 'رزومه‌ات را همین چند وقت پیش برای این آگهی فرستاده‌ای. دوباره بفرستم؟', 'ارسال دوباره').then(function (y) { if (y) apply(it, s); }); else apply(it, s); };

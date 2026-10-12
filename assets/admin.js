@@ -309,6 +309,34 @@
         }).catch(function () { b.classList.remove('loading'); TY.toast(TY.errText(), 'err'); });
       };
     }
+    /* ---- کارت تصویری: پیش‌نمایش، تعویض (آپلود یا ساخت خودکار از متن) و حذف تا قبل از انتشار ---- */
+    function cardBlock(x) {
+      var can = feat('cards') && x.status !== 'approved';
+      return '<div class="cardadm mb" id="cardAdm"><img class="cardfull" id="cardAdmImg" alt="کارت تصویری" style="margin:0 auto 10px;max-width:260px"' + (x.th ? ' src="' + x.th + '"' : '') + '>' +
+        (can ? '<div class="hstack" style="gap:8px;flex-wrap:wrap;justify-content:center"><label class="btn outline sm" for="cardUp">' + TY.ic('edit', 'sm') + 'تعویض با عکس دیگر</label><input type="file" id="cardUp" accept="image/*" style="position:absolute;opacity:0;width:1px;height:1px">' +
+          '<button class="btn outline sm" data-cardauto>' + TY.ic('refresh', 'sm') + 'ساخت دوباره‌ی خودکار</button><button class="btn ghost sm" data-cardrm style="color:var(--danger)">' + TY.ic('trash', 'sm') + 'حذف تصویر</button></div>' +
+          '<p class="xs muted" style="text-align:center;margin:8px 0 0">اگر تصویر را حذف کنی، پست فقط به‌صورت متن در کانال می‌آید.</p>' : '<p class="xs muted" style="text-align:center;margin:0">در کانال منتشر شده است.</p>') + '</div>';
+    }
+    function cardWire(s, x) {
+      var img = s.el.querySelector('#cardAdmImg'); if (!img) return;
+      call('img', {id: x.id}).then(function (r) { if (r && r.ok && img.isConnected) img.src = r.image; }).catch(function () {});
+      var set = function (r, th) { return call('a_item', {op: 'img_set', id: x.id, image: r.image, thumb: r.thumb}).then(function (rs) { if (!rs || !rs.ok) { TY.toast(TY.errText(rs), 'err'); return; } img.src = r.image; x.th = r.thumb; x.img = true; TY.toast('تصویر عوض شد'); }); };
+      var up = s.el.querySelector('#cardUp');
+      if (up) up.onchange = function () {
+        var f = up.files && up.files[0]; up.value = ''; if (!f) return;
+        loadCard().then(function () { return window.TYCard.prepImage(f, 'logo'); }).then(function (src) { return window.TYCard.loadImg(src); }).then(function (im) {
+          var cv = document.createElement('canvas'); cv.width = 1080; cv.height = 1350; var c = cv.getContext('2d'), r = Math.max(1080 / im.width, 1350 / im.height); c.fillStyle = '#fff'; c.fillRect(0, 0, 1080, 1350);
+          c.drawImage(im, 0, 0, im.width, im.height, (1080 - im.width * r) / 2, (1350 - im.height * r) / 2, im.width * r, im.height * r); return window.TYCard.exportCanvas(cv);
+        }).then(function (r) { if (r) return set(r); }).catch(function (e) { TY.toast((e && e.message) || 'عکس خوانده نشد', 'err'); });
+      };
+      var au = s.el.querySelector('[data-cardauto]');
+      if (au) au.onclick = function () {
+        loadCard().then(function () { return window.TYCard.ready(); }).then(function () { return window.TYCard.exportCard(window.TYCard.fromText(x.text, x.type, x.title), {style: 'a', pal: 'auto'}, {}); }).then(function (r) { if (r) return set(r); }).catch(function () { TY.toast('ساخت کارت نشد', 'err'); });
+      };
+      var rm = s.el.querySelector('[data-cardrm]');
+      if (rm) rm.onclick = function () { TY.confirm('تصویر حذف شود؟', 'پست فقط به‌صورت متن منتشر می‌شود.', 'حذف', true).then(function (y) { if (!y) return; call('a_item', {op: 'img_clear', id: x.id}).then(function (rs) { if (rs && rs.ok) { x.img = false; x.th = ''; var b = s.el.querySelector('#cardAdm'); if (b) b.remove(); TY.toast('تصویر حذف شد'); } else TY.toast(TY.errText(rs), 'err'); }); }); };
+    }
+    function loadCard() { return new Promise(function (ok, no) { if (window.TYCard) return ok(); var e = document.createElement('script'); e.src = 'assets/card.js' + (((document.currentScript || {}).src || '').match(/\?v=[\w.]+/) || [''])[0]; e.onload = ok; e.onerror = no; document.head.appendChild(e); }); }
     function itemSheet(x) {
       if (!x) return;
       var f = document.createElement('div'); f.style.display = 'contents';
@@ -320,8 +348,9 @@
       var tgt = x.target ? findI(x.target) : null;
       var s = TY.sheet({title: x.title || TY.titleOf(x.text) || 'بدون عنوان', body: '<div class="hstack" style="flex-wrap:wrap;gap:6px;margin-bottom:12px">' + TY.statusBadge(x.status) +
         '<span class="badge">' + (x.type === 'employer' ? 'آگهی' : 'رزومه') + '</span>' + String(x.cat || '').split(' ').filter(Boolean).map(function (c) { return '<span class="badge">' + esc(TY.catName(c)) + '</span>'; }).join('') + '</div>' +
-        '<dl class="kv" style="margin-bottom:14px"><dt>فرستنده</dt><dd>' + (x.owner ? esc(x.ownerName || '') + ' <a class="num" dir="ltr" href="tel:' + esc(x.owner) + '">' + TY.fa(x.owner) + '</a>' : (x.src === 'channel' ? 'پست کانال' : '—')) + '</dd><dt>زمان</dt><dd>' + esc(TY.ago(x.created)) + '</dd>' +
+        (x.img ? cardBlock(x) : '') + '<dl class="kv" style="margin-bottom:14px"><dt>فرستنده</dt><dd>' + (x.owner ? esc(x.ownerName || '') + ' <a class="num" dir="ltr" href="tel:' + esc(x.owner) + '">' + TY.fa(x.owner) + '</a>' : (x.src === 'channel' ? 'پست کانال' : '—')) + '</dd><dt>زمان</dt><dd>' + esc(TY.ago(x.created)) + '</dd>' +
         (tgt ? '<dt>برای آگهی</dt><dd>' + esc(tgt.title) + '</dd>' : '') + '</dl>' + dupBlock('i', x.id) + '<div class="preview" style="max-height:none">' + TY.linkify(x.text) + '</div>', footer: f});
+      cardWire(s, x);
       f.addEventListener('click', function (e) {
         if (e.target.closest('[data-copy]')) { TY.copy(x.text); return; }
         if (e.target.closest('[data-prev]')) { previewSheet(x); return; }

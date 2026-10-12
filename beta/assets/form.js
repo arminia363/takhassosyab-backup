@@ -230,6 +230,31 @@
       {t: 'ارسال', s: 'راه ارتباط و مقصد رزومه', r: function () { return F('contact', 'راه ارتباط', {req: true, ph: '09121234567 یا @username', ltr: true}) + F('link', 'لینک رزومه / نمونه‌کار', {ph: 'https://', ltr: true}) + visBlock() + previewBlock(); }, req: ['contact', 'target']}
     ];
 
+    /* ---------- کارت تصویری (فلایر کانال): فقط وقتی سرور features.cards دارد ---------- */
+    var CARD_STEP = {t: 'کارت', s: 'تصویر پست در کانال', card: true, r: function () { if (isCV && st.vis !== 'channel') return '<div class="banner mb">' + TY.ic('eye', 'sm') + '<div class="grow">کارت تصویری فقط برای رزومه‌ای ساخته می‌شود که در کانال منتشر می‌شود. رزومه‌ی تو ' + (st.vis === 'direct' ? 'مستقیم برای کارفرما' : 'فقط برای ادمین') + ' می‌رود و عکس و کارتی جایی منتشر نمی‌شود.</div></div>'; return '<div id="cardMount"><div class="skel" style="height:320px;border-radius:14px"></div></div>'; }}, cardCtl = null;
+    function cardOn() { return TY.feat('cards'); }
+    function ensureCardStep() { if (cardOn() && STEPS.indexOf(CARD_STEP) < 0) STEPS.push(CARD_STEP); }
+    function cardState() { if (!st.card || typeof st.card !== 'object') st.card = {style: 'a', pal: 'auto', none: false, showPhoto: true}; return st.card; }
+    function cardImgs() { return TY.store.get('cardimg_' + kind, null) || {}; }
+    function cardData() {
+      var dp = deptObj();
+      return window.TYCard.fromForm({kind: kind, st: st, title: isCV ? titleTxt() : titleTxt(), salary: salaryTxt(), dept: dp ? {key: dp.key, name: dp.name} : null});
+    }
+    function mountCard() {
+      var el = document.getElementById('cardMount'); if (!el) return;
+      loadJS('assets/card.js').then(function () {
+        if (!document.getElementById('cardMount')) return;
+        cardCtl = window.TYCard.mount(document.getElementById('cardMount'), {kind: kind, cs: cardState(), getData: cardData, save: save, getImgs: cardImgs, setImgs: function (v) { TY.store.set('cardimg_' + kind, v); }});
+      }).catch(function () { el.innerHTML = '<div class="banner warn">' + TY.ic('alert', 'sm') + '<div class="grow">ساخت کارت بارگذاری نشد؛ آگهی بدون تصویر ارسال می‌شود.</div></div>'; cardState().none = true; });
+    }
+    // خروجی کارت برای ارسال: {image, thumb} | {noimage:true} | {}
+    function cardExport() {
+      if (!cardOn() || (isCV && st.vis !== 'channel')) return Promise.resolve({});
+      var cs = cardState(); if (cs.none) return Promise.resolve(editItem ? {noimage: true} : {});
+      return loadJS('assets/card.js').then(function () { var im = cardImgs(); return window.TYCard.exportCard(cardData(), cs, {logo: isCV ? '' : im.logo, photo: isCV ? im.photo : ''}); })
+        .then(function (r) { return r ? {image: r.image, thumb: r.thumb} : {}; }, function () { return {}; });
+    }
+
     function uploadCard() {
       if (editItem || step !== 0) return '';
       var ad = !isCV, accept = 'image/*,.jpg,.jpeg,.png,.webp,.pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain';
@@ -274,6 +299,7 @@
       document.getElementById('next').onclick = next;
       var pv = document.getElementById('prev'); if (pv) pv.onclick = function () { if (history.state && history.state.fstep === step) history.back(); else { step--; render(); window.scrollTo(0, 0); } };
       paintAuto();
+      if (S.card) mountCard();
       // city free text mirrors chip
       var cityIn = document.getElementById('f_city'); if (cityIn && CITY_TAGS.indexOf(st.city) >= 0) cityIn.value = '';
     }
@@ -316,8 +342,8 @@
         if (!ok) return;
         b.classList.add('loading');
         var text = buildText();
-        TY.api(editItem ? 'my_edit' : 'submit', {id: editItem ? editItem.id : undefined, type: kind, title: isCV ? (st.name + (titleTxt() ? ' | ' + titleTxt() : '')) : titleTxt(), text: text, tags: tags().join(' '), city: [st.city, st.area].filter(Boolean).join('، '),
-          contact: TY.en(st.contact || ''), vis: isCV ? st.vis : 'channel', target: isCV && st.vis === 'direct' ? st.target : '', fields: st}).then(function (r) {
+        cardExport().then(function (cx) { return TY.api(editItem ? 'my_edit' : 'submit', Object.assign({id: editItem ? editItem.id : undefined, type: kind, title: isCV ? (st.name + (titleTxt() ? ' | ' + titleTxt() : '')) : titleTxt(), text: text, tags: tags().join(' '), city: [st.city, st.area].filter(Boolean).join('، '),
+          contact: TY.en(st.contact || ''), vis: isCV ? st.vis : 'channel', target: isCV && st.vis === 'direct' ? st.target : '', fields: st}, cx)); }).then(function (r) {
           b.classList.remove('loading');
           if (!r || !r.ok) { TY.store.del('lastsub'); TY.toast(TY.errText(r), 'err'); return; }
           if (r.dup) TY.toast('این را همین چند ساعت پیش فرستاده بودی؛ همان ارسال قبلی ثبت است');
@@ -473,7 +499,8 @@
     if (isCV && !TY.cachedFeed()) TY.feed().then(function () { if (st.vis === 'direct') render(); });
     try { history.replaceState({fstep: 0}, ''); } catch (e) {}
     window.addEventListener('popstate', function (e) { var fs = e.state && e.state.fstep; if (!finished && typeof fs === 'number' && fs < step) { step = fs; render(); window.scrollTo(0, 0); } });
+    ensureCardStep();
     render();
-    TY.me().then(function (r) { if (r && r.user) { user = r.user; } });
+    TY.me().then(function (r) { if (r && r.user) { user = r.user; } if (!finished && cardOn() && STEPS.indexOf(CARD_STEP) < 0) { ensureCardStep(); render(); } });
   };
 })();
