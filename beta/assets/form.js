@@ -294,8 +294,10 @@
       var bar = document.querySelector('.actionbar');
       if (!bar) { bar = document.createElement('div'); bar.className = 'actionbar'; document.body.appendChild(bar); } document.body.classList.add('has-ab');
       var last = step === STEPS.length - 1;
+      var adm = adminDirect();
+      if (last && adm) { var fm = document.getElementById('form'); if (fm) fm.insertAdjacentHTML('afterend', '<div class="banner brand mt2" id="admdirect">' + TY.ic('check', 'sm') + '<div class="grow">به‌عنوان ادمین بدون نیاز به تأیید منتشر می‌شود.</div></div>'); }
       bar.innerHTML = '<div class="in">' + (step ? '<button class="btn ghost" id="prev">' + TY.ic('back', 'sm') + 'قبلی</button>' : '') +
-        '<button class="btn ' + (last ? 'primary' : 'dark') + ' lg" id="next">' + (last ? (isCV && st.vis === 'direct' ? 'ارسال برای کارفرما' : (isCV && st.vis === 'admin' ? 'ارسال برای ادمین' : 'ارسال برای تأیید')) : 'ادامه') + (last ? '' : TY.ic('fwd', 'sm')) + '</button></div>';
+        '<button class="btn ' + (last ? 'primary' : 'dark') + ' lg" id="next">' + (last ? (adm ? 'انتشار مستقیم' : isCV && st.vis === 'direct' ? 'ارسال برای کارفرما' : (isCV && st.vis === 'admin' ? 'ارسال برای ادمین' : 'ارسال برای تأیید')) : 'ادامه') + (last ? '' : TY.ic('fwd', 'sm')) + '</button></div>';
       document.getElementById('next').onclick = next;
       var pv = document.getElementById('prev'); if (pv) pv.onclick = function () { if (history.state && history.state.fstep === step) history.back(); else { step--; render(); window.scrollTo(0, 0); } };
       paintAuto();
@@ -330,6 +332,7 @@
       submit();
     }
     var inFlight = false;
+    function adminDirect() { var u = TY.user(); return !!(u && u.isAdmin && TY.feat('adminDirect') && (!isCV || st.vis === 'channel')); }
     function submit() {
       var b = document.getElementById('next');
       if (inFlight || (b && b.classList.contains('loading'))) return;
@@ -351,20 +354,21 @@
           if (!r || !r.ok) { TY.store.del('lastsub'); TY.toast(TY.errText(r), 'err'); return; }
           TY.store.del('nonce_' + kind);
           if (r.dup) TY.toast('این را همین چند ساعت پیش فرستاده بودی؛ همان ارسال قبلی ثبت است');
-          if (editItem) { TY.store.del(KEY); done(r.status); TY.me(); return; }
+          if (editItem) { TY.store.del(KEY); done(r.status, r); TY.me(); return; }
           var keep = JSON.parse(JSON.stringify(st)); delete keep.target; if (keep.vis === 'direct') keep.vis = isCV ? 'channel' : keep.vis; TY.store.set('last_' + kind, keep);
-          TY.store.del(KEY); done(r.status);
+          TY.store.del(KEY); done(r.status, r);
           TY.me();
         }).catch(function (e) { unlock(); TY.toast(TY.errText({error: e && e.message === 'timeout' ? 'timeout' : 'net'}), 'err'); });
       });
     }
-    function done(status) {
+    function done(status, res) {
       TY.store.del(AKEY); finished = true; var bar = document.querySelector('.actionbar'); if (bar) bar.remove(); document.body.classList.remove('has-ab');
       var msg = {pending: [isCV ? 'رزومه‌ات برای ادمین رفت' : 'آگهی‌ات برای بررسی رفت', 'بعد از تأیید ادمین در کانال @JobVacencies و برنامه منتشر می‌شود و همین‌جا و در تلگرام خبرت می‌کنیم.'],
         private: ['رزومه‌ات برای ادمین فرستاده شد', 'رزومه عمومی نمی‌شود. ادمین‌ها آن را می‌بینند و برای فرصت مناسب معرفی‌ات می‌کنند.'],
-        direct: ['رزومه‌ات برای کارفرما رفت', 'کارفرما در برنامه و تلگرام آن را می‌بیند. موفق باشی!']}[status] || ['ارسال شد', ''];
+        direct: ['رزومه‌ات برای کارفرما رفت', 'کارفرما در برنامه و تلگرام آن را می‌بیند. موفق باشی!'],
+        approved: [isCV ? 'رزومه منتشر شد' : 'آگهی منتشر شد', 'بدون نیاز به تأیید، در کانال @JobVacencies و برنامه منتشر شد.']}[status] || ['ارسال شد', ''];
       main.innerHTML = '<div class="empty" style="padding-top:56px"><div class="ic" style="background:var(--brand-soft);color:var(--brand-text)">' + TY.ic('check', 'lg') + '</div><h3 class="h2" style="margin-bottom:8px">' + esc(msg[0]) + '</h3><p>' + esc(msg[1]) + '</p>' +
-        '<div class="stack" style="max-width:320px;margin:0 auto">' + (user && !user.tg && user.tgLink ? '<a class="btn outline block" target="_blank" rel="noopener" href="' + esc(user.tgLink) + '">' + TY.ic('send', 'sm') + 'برای خبر تأیید، تلگرام را وصل کن</a>' : '') + '<a class="btn primary block lg" href="me.html#mine">دیدن ارسال‌های من</a><a class="btn outline block" href="enter.html">بازگشت به خانه</a></div></div>';
+        '<div class="stack" style="max-width:320px;margin:0 auto">' + (status === 'approved' && res && /^https:\/\/t\.me\//.test(res.url || '') ? '<a class="btn primary block lg" id="chpost" target="_blank" rel="noopener" href="' + esc(res.url) + '">' + TY.ic('send', 'sm') + 'دیدن پست در کانال</a>' : '') + (user && !user.tg && user.tgLink ? '<a class="btn outline block" target="_blank" rel="noopener" href="' + esc(user.tgLink) + '">' + TY.ic('send', 'sm') + 'برای خبر تأیید، تلگرام را وصل کن</a>' : '') + '<a class="btn primary block lg" href="me.html#mine">دیدن ارسال‌های من</a><a class="btn outline block" href="enter.html">بازگشت به خانه</a></div></div>';
       window.scrollTo(0, 0);
     }
     function pickAd() {
