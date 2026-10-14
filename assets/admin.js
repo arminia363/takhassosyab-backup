@@ -98,6 +98,7 @@
       var L = lists();
       var T = [['signup', 'عضویت', L.signup.length, true], ['ads', 'آگهی‌ها', L.ads.length, true], ['cvs', 'رزومه‌ها', L.cvs.filter(function (x) { return x.status === 'pending'; }).length, true], ['pub', 'منتشرشده', L.pub.length], ['members', 'اعضا', L.members.filter(function (u) { return u.status === 'approved'; }).length]];
       if (data.stats) T.push(['stats', 'آمار', 0]);
+      if (feat('logs')) T.push(['logs', 'گزارش خطاها', 0]);
       var pendTotal = L.signup.length + L.ads.length + L.cvs.filter(function (x) { return x.status === 'pending'; }).length;
       var tgN = (data.admins || []).length;
       var h = '<div class="between" style="margin:8px 2px 12px"><div><div class="h3">' + (pendTotal ? TY.fa(pendTotal) + ' مورد منتظر تصمیم توست' : 'همه‌چیز بررسی شده') + '</div>' +
@@ -106,6 +107,7 @@
       h += '<div class="tabs" role="tablist">' + T.map(function (t) {
         return '<button role="tab" data-tab="' + t[0] + '" aria-selected="' + (tab === t[0]) + '">' + t[1] + (t[2] ? ' <span class="cnt' + (t[3] && t[2] ? ' hot' : '') + '">' + TY.fa(t[2]) + '</span>' : '') + '</button>';
       }).join('') + '</div>';
+      if (tab === 'logs') { main.innerHTML = h + '<div id="logBox"></div>'; syncBar(); logsView(TY.$('#logBox')); return; }
       if (tab === 'stats') { main.innerHTML = h + (feat('smsAdmin') ? '<div id="smsBox"></div>' : '') + statsView(); syncBar(); loadSms(TY.$('#smsBox')); return; }
       var canSel = (tab === 'signup' || tab === 'ads' || tab === 'cvs') && selectable().length > 1;
       if (!canSel && selMode) { selMode = false; sel = {}; }
@@ -197,6 +199,37 @@
 
     /* ---------------- آمار ---------------- */
     function dur(m) { return !m ? '—' : m < 60 ? TY.fa(m) + ' دقیقه' : m < 1440 ? TY.fa(Math.round(m / 60)) + ' ساعت' : TY.fa(Math.round(m / 1440)) + ' روز'; }
+    var LOGK = {api: 'ارتباط با سرور', js: 'خطای صفحه', promise: 'خطای برنامه', asset: 'بار نشدن فایل', sw: 'سرویس آفلاین', slow: 'کندی', native_error: 'اپ: باز نشد', native_backup: 'اپ: نسخه‌ی پشتیبان', native_offline: 'اپ: صفحه‌ی آفلاین', native_slow: 'اپ: کندی', other: 'سایر'}, logKind = '';
+    function logsView(box) {
+      if (!box) return;
+      box.innerHTML = '<div class="card flat mt3"><div class="sk" style="width:60%"></div><div class="sk mt2" style="width:40%"></div></div>';
+      call('a_logs', {limit: 300}).then(function (r) {
+        if (!box.isConnected) return;
+        if (!r || !r.ok) { box.innerHTML = '<div class="empty">' + TY.ic('alert') + '<p>گزارش‌ها دریافت نشد</p></div>'; return; }
+        var sm = r.summary || {}, ks = sm.kinds || {}, all = r.items || [];
+        var kinds = Object.keys(LOGK).filter(function (k) { return ks[k] || all.some(function (x) { return x.kind === k; }); });
+        all.forEach(function (x) { if (!LOGK[x.kind] && kinds.indexOf(x.kind) < 0) kinds.push(x.kind); });
+        var list = logKind ? all.filter(function (x) { return x.kind === logKind; }) : all;
+        var h = '<div class="between" style="margin:12px 2px 8px"><div><div class="h3">' + (sm.total24 ? TY.fa(sm.total24) + ' خطا در ۲۴ ساعت گذشته' : 'در ۲۴ ساعت گذشته خطایی ثبت نشده') + '</div><div class="xs muted">' + TY.fa(sm.total || 0) + ' گزارش ذخیره‌شده · تکراری‌ها یک‌جا شمرده می‌شوند</div></div>' +
+          '<div class="hstack"><button class="btn outline sm" data-lref>' + TY.ic('refresh', 'xs') + 'تازه‌سازی</button>' + (all.length ? '<button class="btn outline sm" data-lclr style="color:var(--danger)">' + TY.ic('trash', 'xs') + 'پاک کردن</button>' : '') + '</div></div>';
+        h += '<div class="chips scroll" style="margin-bottom:12px"><button class="chip" data-lk="" aria-pressed="' + !logKind + '">همه</button>' + kinds.map(function (k) {
+          return '<button class="chip" data-lk="' + esc(k) + '" aria-pressed="' + (logKind === k) + '">' + esc(LOGK[k] || k) + (ks[k] ? ' <span class="cnt">' + TY.fa(ks[k]) + '</span>' : '') + '</button>'; }).join('') + '</div>';
+        h += list.length ? '<div class="list">' + list.map(function (x, i) {
+          var sub = [x.page, x.app, x.net, x.mobile].filter(Boolean).map(esc).join(' · ');
+          return '<button class="row" data-li="' + i + '" style="align-items:flex-start"><span class="tile-ic ' + (/native|slow/.test(x.kind) ? 'info' : 'danger') + '">' + TY.ic(/slow/.test(x.kind) ? 'clock' : 'alert', 'sm') + '</span><div class="grow" style="min-width:0"><div class="t">' + esc(LOGK[x.kind] || x.kind) + ' <span class="xs muted">' + esc(TY.ago(x.time)) + ' · <span class="num">' + esc(TY.fa(String(x.time).slice(5, 16).replace('-', '/'))) + '</span></span></div>' +
+            '<div class="s" dir="ltr" style="text-align:left;overflow-wrap:anywhere">' + esc(x.message) + '</div><div class="xs muted" style="overflow-wrap:anywhere">' + sub + '</div></div></button>';
+        }).join('') + '</div>' : '<div class="empty">' + TY.ic('check') + '<p>گزارشی نیست</p></div>';
+        box.innerHTML = h;
+        box.onclick = function (e) {
+          var k = e.target.closest('[data-lk]'); if (k) { logKind = k.getAttribute('data-lk'); logsView(box); return; }
+          if (e.target.closest('[data-lref]')) { logsView(box); return; }
+          if (e.target.closest('[data-lclr]')) { TY.confirm('پاک کردن همه‌ی گزارش‌ها؟', 'همه‌ی گزارش‌های خطا از شیت حذف می‌شود.', 'پاک کن', true).then(function (y) { if (y) clr(); }); return; }
+          var li = e.target.closest('[data-li]'); if (li) { var x = list[+li.getAttribute('data-li')];
+            TY.sheet({title: LOGK[x.kind] || x.kind, body: '<dl class="kv"><dt>زمان (تهران)</dt><dd class="num">' + esc(TY.fa(x.time)) + ' · ' + esc(TY.ago(x.time)) + '</dd><dt>صفحه</dt><dd>' + esc(x.page || '—') + '</dd><dt>پیام</dt><dd dir="ltr" style="text-align:left;overflow-wrap:anywhere">' + esc(x.message) + '</dd><dt>جزئیات</dt><dd dir="ltr" style="text-align:left;overflow-wrap:anywhere">' + esc(x.detail || '—') + '</dd><dt>نسخه</dt><dd dir="ltr">' + esc(x.app || '—') + '</dd><dt>شبکه</dt><dd dir="ltr">' + esc(x.net || '—') + '</dd><dt>موبایل</dt><dd class="num">' + esc(x.mobile || '—') + '</dd><dt>مرورگر</dt><dd dir="ltr" style="text-align:left;overflow-wrap:anywhere" class="xs">' + esc(x.ua || '—') + '</dd></dl>'}); }
+        };
+        function clr() { call('a_logs', {op: 'clear'}).then(function (r) { if (r && r.ok) { TY.toast('گزارش‌ها پاک شد'); logsView(box); } else TY.toast('پاک نشد', 'err'); }).catch(function () { TY.toast('پاک نشد', 'err'); }); }
+      }).catch(function () { if (box.isConnected) box.innerHTML = '<div class="empty">' + TY.ic('alert') + '<p>اتصال برقرار نشد</p></div>'; });
+    }
     function statsView() {
       var st = data.stats, days = st.days || [], mx = 1, L = lists(), pend = L.signup.length + L.ads.length + L.cvs.filter(function (x) { return x.status === 'pending'; }).length;
       days.forEach(function (d) { mx = Math.max(mx, d.u + d.a + d.c); });

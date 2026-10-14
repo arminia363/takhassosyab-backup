@@ -19,6 +19,7 @@
   TY.ago = function (s) {
     var d = TY.parseDate(s); if (!d) return '';
     var m = Math.round((Date.now() - d.getTime()) / 60000);
+    if (m < -30 && m > -300) m += 210; /* old rows saved 3.5h ahead */
     if (m < 1) return 'همین حالا'; if (m < 60) return TY.fa(m) + ' دقیقه پیش';
     var h = Math.round(m / 60); if (h < 24) return TY.fa(h) + ' ساعت پیش';
     var dd = Math.round(h / 24); if (dd === 1) return 'دیروز'; if (dd < 7) return TY.fa(dd) + ' روز پیش';
@@ -80,20 +81,22 @@
   TY.ic = function (n, cls) { return '<svg class="i ' + (cls || '') + '" viewBox="0 0 24 24" aria-hidden="true">' + (P[n] || '') + '</svg>'; };
 
   /* ---------------- api ---------------- */
-  function req(url, opt, ms) {
+  function req(url, opt, ms, tag) {
+    var t0 = Date.now();
     return new Promise(function (res, rej) {
-      var done = false, t = setTimeout(function () { if (!done) { done = true; rej(new Error('timeout')); } }, ms || 25000);
-      fetch(url, opt).then(function (r) { return r.json(); }).then(function (j) { if (TY.netState) TY.netState(true); if (!done) { done = true; clearTimeout(t); res(j); } })
-        .catch(function (e) { if (TY.netState) TY.netState(false); if (!done) { done = true; clearTimeout(t); rej(e); } });
+      var done = false, t = setTimeout(function () { if (!done) { done = true; logApi(tag, 'timeout', t0); rej(new Error('timeout')); } }, ms || 25000);
+      fetch(url, opt).then(function (r) { if (!r.ok) { var he = new Error('http ' + r.status); he.http = r.status; throw he; } return r.json(); }).then(function (j) { if (TY.netState) TY.netState(true); if (!done) { done = true; clearTimeout(t); if (j && j.error === 'server') logApi(tag, 'server: ' + String(j.detail || '').slice(0, 200), t0); res(j); } })
+        .catch(function (e) { if (TY.netState) TY.netState(false); if (!done) { done = true; clearTimeout(t); logApi(tag, e && e.http ? 'http ' + e.http : (navigator.onLine === false ? 'offline' : 'network') + ': ' + String(e && e.message || e).slice(0, 120), t0); rej(e); } });
     });
   }
+  function logApi(tag, what, t0) { if (TY.log) TY.log('api', (tag || '?') + ' ' + what.split(':')[0], what + ' · ' + (Date.now() - t0) + 'ms'); }
   TY.api = function (action, data) {
     var body = Object.assign({action: action}, data || {});
     var s = TY.session(); if (s && s.token && !body.token) body.token = s.token;
     // hard gate: never POST to the v1 server (it stores unknown payloads as form rows)
     // ارسال‌های سنگین (کارت تصویری) ممکن است بیش از ۲۵ ثانیه طول بکشد؛ قطع زودهنگام باعث «دوباره زدن» و اعلان تکراری می‌شد
     var ms = /^(submit|my_edit|register|a_item|a_bulk|a_add)$/.test(action) ? 70000 : 25000;
-    return TY.backend().then(function (v) { if (v < 2) return {ok: false, error: v === 1 ? 'oldserver' : 'network'}; return req(TY.API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(body), redirect: 'follow'}, ms)
+    return TY.backend().then(function (v) { if (v < 2) return {ok: false, error: v === 1 ? 'oldserver' : 'network'}; return req(TY.API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(body), redirect: 'follow'}, ms, action)
       .then(function (r) { if (r && r.error === 'auth' && body.token && action !== 'login_poll') { TY.logout(true); } return r; }); });
   };
   // کلید یکتایی درخواست: همان کار (همان متن) در تلاش دوباره همان nonce را می‌فرستد تا سرور فقط یک بار ثبت کند
@@ -104,12 +107,12 @@
     var n = Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
     TY.store.set(k, {n: n, sig: sig, t: Date.now()}); return n;
   };
-  TY.get = function (params) { return req(TY.API + '?' + new URLSearchParams(params).toString(), {redirect: 'follow'}); };
+  TY.get = function (params) { return req(TY.API + '?' + new URLSearchParams(params).toString(), {redirect: 'follow'}, 0, 'get:' + ((params && params.action) || '')); };
 
   // backend version gate: the new UI needs Code.gs v2. Until Armin deploys it, writes are disabled.
   TY.backend = function () {
     var c = TY.store.get('be'); if (c && Date.now() - c.t < (c.v >= 2 ? 1800000 : 120000)) return Promise.resolve(c.v);
-    return TY.get({action: 'ping'}).then(function (r) { var v = (r && r.v) || 1; if (r && r.bot) TY.BOT = r.bot; TY.store.set('be', {v: v, t: Date.now()}); return v; })
+    return TY.get({action: 'ping'}).then(function (r) { var v = (r && r.v) || 1; if (r && r.bot) TY.BOT = r.bot; TY.store.set('be', {v: v, t: Date.now(), f: (r && r.features) || null}); return v; })
       .catch(function () { return c ? c.v : 0; });
   };
   // آیا سرور ورود/تأیید با پیامک را فعال کرده؟ (ping تازه، نه کش؛ تا ۶ ثانیه صبر می‌کند و در شک «خیر» می‌گوید)
@@ -446,8 +449,85 @@
     window.addEventListener('online', function () { TY.netState(true); if (TY.session()) TY.me(); });
   })();
 
+  /* ---------------- error log (features.logs) ---------------- */
+  // خطاها در localStorage جمع می‌شوند (حداکثر ۵۰، تکراری‌ها شمرده می‌شوند) و وقتی سرور در دسترس بود بی‌صدا فرستاده می‌شوند.
+  (function () {
+    var KEY = 'logbuf', MAX = 50, perPage = 0, lastFlush = 0, flushing = false;
+    var ver = (function () { var sc = document.querySelector('script[src*="core.js"]'); var m = sc && /[?&]v=([^&]+)/.exec(sc.getAttribute('src')); return m ? m[1] : ''; })();
+    function inApp() { return !!window.Android || /TakhassosyabApp/.test(navigator.userAgent); }
+    function appVer() { var b = ''; try { if (window.Android && Android.build) b = String(Android.build()); } catch (e) {} return (inApp() ? 'apk' + (b ? ' ' + b : '<23') : 'web') + (ver ? ' v' + ver : '') + (/github\.io$/.test(location.hostname) ? ' backup' : ''); }
+    function net() { var c = navigator.connection || {}; return (navigator.onLine === false ? 'offline' : 'online') + (c.effectiveType ? '/' + c.effectiveType : '') + (c.type ? '/' + c.type : ''); }
+    function page() { return (location.pathname.split('/').pop() || 'index.html') + (/github\.io$/.test(location.hostname) ? ' (backup)' : ''); }
+    function add(e) {
+      var buf = TY.store.get(KEY, []), sig = e.kind + '|' + e.msg, hit = null;
+      for (var i = 0; i < buf.length; i++) if (buf[i].sig === sig) { hit = buf[i]; break; }
+      if (hit) { hit.n = (hit.n || 1) + (e.n || 1); hit.t = e.t; if (e.detail) hit.detail = e.detail; }
+      else { e.sig = sig; buf.push(e); if (buf.length > MAX) buf = buf.slice(-MAX); }
+      TY.store.set(KEY, buf);
+    }
+    TY.log = function (kind, msg, detail) {
+      try {
+        if (++perPage > 40) return;
+        add({kind: kind, msg: String(msg || '').slice(0, 300), detail: String(detail || '').slice(0, 600), page: page(), net: net(), t: Date.now()});
+        setTimeout(function () { TY.flushLogs(); }, 4000);
+      } catch (e) {}
+    };
+    function importNative() {
+      try {
+        if (!window.Android || !Android.getLogs) return;
+        var a = JSON.parse(Android.getLogs() || '[]'); if (!(a instanceof Array) || !a.length) return;
+        a.forEach(function (x) { add({kind: String(x.kind || 'native'), msg: String(x.msg || ''), detail: String(x.detail || ''), page: 'app', t: Number(x.t) || Date.now()}); });
+        Android.clearLogs();
+      } catch (e) {}
+    }
+    function canSend() { var b = TY.store.get('be'); return !!(b && b.v >= 2 && b.f && b.f.logs); }
+    function payload(buf) { var u = TY.user(); return JSON.stringify({action: 'log', entries: buf.map(function (x) { return {kind: x.kind, msg: x.msg, detail: x.detail, page: x.page, net: x.net, t: x.t, n: x.n}; }), ua: navigator.userAgent, app: appVer(), net: net(), mobile: (u && u.mobile) || '', dev: dev()}); }
+    function dev() { var d = TY.store.get('dev'); if (!d) { d = Math.random().toString(36).slice(2, 12); TY.store.set('dev', d); } return d; }
+    TY.flushLogs = function (beacon) {
+      try {
+        importNative();
+        var buf = TY.store.get(KEY, []);
+        if (!buf.length || flushing || !canSend() || navigator.onLine === false) return;
+        if (!beacon && Date.now() - lastFlush < 60000) return;
+        lastFlush = Date.now(); buf = buf.slice(0, 25);
+        var body = payload(buf), drop = function () { var cur = TY.store.get(KEY, []), sent = {}; buf.forEach(function (x) { sent[x.sig + '@' + x.t] = 1; }); TY.store.set(KEY, cur.filter(function (x) { return !sent[x.sig + '@' + x.t]; })); };
+        if (beacon && navigator.sendBeacon) { if (navigator.sendBeacon(TY.API, new Blob([body], {type: 'text/plain;charset=utf-8'}))) drop(); return; }
+        flushing = true;
+        fetch(TY.API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: body, redirect: 'follow', keepalive: body.length < 60000})
+          .then(function (r) { return r.json(); }).then(function (j) { if (j && j.ok) drop(); }).catch(function () {}).then(function () { flushing = false; });
+      } catch (e) { flushing = false; }
+    };
+    TY.logBuffer = function () { return TY.store.get(KEY, []); };
+    window.addEventListener('error', function (e) {
+      var t = e.target;
+      if (t && t !== window && t.tagName) { // فایل (اسکریپت/استایل/فونت/تصویر خودمان) بار نشد
+        var src = t.src || t.href || ''; if (t.tagName === 'IMG' && src.indexOf(location.host) < 0) return;
+        TY.log('asset', t.tagName.toLowerCase() + ' load failed', src.slice(0, 300)); return;
+      }
+      TY.log('js', String(e.message || 'error'), (e.filename || '').split('/').pop() + ':' + (e.lineno || 0) + ':' + (e.colno || 0) + (e.error && e.error.stack ? ' ' + String(e.error.stack).slice(0, 400) : ''));
+    }, true);
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e.reason, m = String((r && r.message) || r || 'rejection');
+      if (/^(timeout|Failed to fetch|NetworkError|Load failed|http \d+)/.test(m)) return; // همین حالا با نوع api ثبت شده
+      TY.log('promise', m.slice(0, 300), r && r.stack ? String(r.stack).slice(0, 400) : '');
+    });
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        try {
+          var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+          var ms = nav ? Math.round(nav.loadEventStart || nav.duration) : (performance.timing ? performance.timing.loadEventStart - performance.timing.navigationStart : 0);
+          if (ms > 8000) TY.log('slow', 'slow page load ' + Math.round(ms / 1000) + 's', 'dns+connect ' + (nav ? Math.round(nav.connectEnd - nav.startTime) : '?') + 'ms, ttfb ' + (nav ? Math.round(nav.responseStart - nav.startTime) : '?') + 'ms');
+        } catch (e) {}
+        var go = function () { TY.backend().then(function () { TY.flushLogs(); }).catch(function () {}); };
+        if (window.requestIdleCallback) requestIdleCallback(go, {timeout: 5000}); else go();
+      }, 2500);
+    });
+    window.addEventListener('online', function () { lastFlush = 0; setTimeout(function () { TY.flushLogs(); }, 3000); });
+    window.addEventListener('pagehide', function () { if (TY.store.get(KEY, []).length) TY.flushLogs(true); });
+  })();
+
   /* ---------------- boot ---------------- */
   if (window.Android || /TakhassosyabApp/.test(navigator.userAgent)) document.documentElement.classList.add('in-app');
-  if ('serviceWorker' in navigator && !isLocal) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+  if ('serviceWorker' in navigator && !isLocal) window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function (e) { TY.log('sw', 'service worker: ' + String(e && e.message || e).slice(0, 150)); }); });
   var s0 = TY.session(); if (s0) bridgeToken(s0.token);
 })();

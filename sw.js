@@ -1,5 +1,5 @@
 /* تخصص‌یاب service worker: offline shell + notification clicks. API calls (script.google.com) are never cached. */
-var V = 'ty2-2610141640', OCR = 'ty2-ocr-1'; /* OCR engine + Persian/English data: not precached (huge); cached on first use, survives app-version bumps */
+var V = 'ty2-2610142250', OCR = 'ty2-ocr-1'; /* OCR engine + Persian/English data: not precached (huge); cached on first use, survives app-version bumps */
 var CORE = ['assets/app.css', 'assets/core.js', 'assets/data.js', 'assets/feed.js', 'assets/form.js', 'assets/vazirmatn.woff2', 'icon.svg', 'icon-192.png', 'enter.html', 'jobs.html', 'resumes.html', 'me.html', 'inbox.html', 'post.html', 'employer.html', 'jobseeker.html', 'register.html'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(V).then(function (c) { return Promise.all(CORE.map(function (u) { return c.add(u).catch(function () {}); })); }).then(function () { return self.skipWaiting(); }));
