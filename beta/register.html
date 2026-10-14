@@ -49,8 +49,9 @@ main.addEventListener('submit',function(e){
   e.preventDefault(); var b=$('#go'), mobile=TY.mobile($('#mobile').value), name=$('#name')?$('#name').value.trim():'';
   fieldErr('mobile',mobile?'':'شماره موبایل ۱۱ رقمی را درست بنویس'); if(mode==='signup') fieldErr('name',name.length>=3?'':'نام کامل را بنویس');
   if(!mobile||(mode==='signup'&&name.length<3)) return;
-  TY.needV2().then(function(ok){ if(!ok) return; b.classList.add('loading');
-    if(mode==='signup') smsOn().then(function(on){ return TY.api('register',{name:name,mobile:mobile,role:role,sms:on?1:0}); }).then(function(r){ b.classList.remove('loading');
+  if(b.classList.contains('loading')) return; b.classList.add('loading');
+  TY.needV2().then(function(ok){ if(!ok){ b.classList.remove('loading'); return; }
+    if(mode==='signup') smsOn().then(function(on){ return TY.api('register',{name:name,mobile:mobile,role:role,sms:on?1:0,nonce:TY.nonce('reg',mobile+name+role)}); }).then(function(r){ b.classList.remove('loading');
       if(r&&r.ok){TY.setSession(r.token,r.user);localStorage.setItem('ty_mobile',mobile);if(r.user&&r.user.needVerify){smsCode({kind:'verify',mobile:mobile,sms:r.sms});return;}connect(r.user);return;}
       if(r&&r.error==='exists'){mode='login';oldMobile=mobile;draw();TY.toast('این شماره قبلاً عضو شده؛ وارد شو');return;}
       TY.toast(TY.errText(r),'err');

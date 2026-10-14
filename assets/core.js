@@ -92,8 +92,18 @@
     var body = Object.assign({action: action}, data || {});
     var s = TY.session(); if (s && s.token && !body.token) body.token = s.token;
     // hard gate: never POST to the v1 server (it stores unknown payloads as form rows)
-    return TY.backend().then(function (v) { if (v < 2) return {ok: false, error: v === 1 ? 'oldserver' : 'network'}; return req(TY.API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(body), redirect: 'follow'})
+    // ارسال‌های سنگین (کارت تصویری) ممکن است بیش از ۲۵ ثانیه طول بکشد؛ قطع زودهنگام باعث «دوباره زدن» و اعلان تکراری می‌شد
+    var ms = /^(submit|my_edit|register|a_item|a_bulk|a_add)$/.test(action) ? 70000 : 25000;
+    return TY.backend().then(function (v) { if (v < 2) return {ok: false, error: v === 1 ? 'oldserver' : 'network'}; return req(TY.API, {method: 'POST', headers: {'Content-Type': 'text/plain;charset=utf-8'}, body: JSON.stringify(body), redirect: 'follow'}, ms)
       .then(function (r) { if (r && r.error === 'auth' && body.token && action !== 'login_poll') { TY.logout(true); } return r; }); });
+  };
+  // کلید یکتایی درخواست: همان کار (همان متن) در تلاش دوباره همان nonce را می‌فرستد تا سرور فقط یک بار ثبت کند
+  TY.nonce = function (scope, sig) {
+    var k = 'nonce_' + scope, c = TY.store.get(k, null);
+    if (c && c.sig === sig && Date.now() - c.t < 3600000) return c.n;
+    var a = new Uint8Array(12); (window.crypto || window.msCrypto).getRandomValues(a);
+    var n = Array.prototype.map.call(a, function (x) { return ('0' + x.toString(16)).slice(-2); }).join('');
+    TY.store.set(k, {n: n, sig: sig, t: Date.now()}); return n;
   };
   TY.get = function (params) { return req(TY.API + '?' + new URLSearchParams(params).toString(), {redirect: 'follow'}); };
 

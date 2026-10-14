@@ -329,29 +329,33 @@
       if (step < STEPS.length - 1) { step++; try { history.pushState({fstep: step}, ''); } catch (e) {} render(); window.scrollTo(0, 0); return; }
       submit();
     }
+    var inFlight = false;
     function submit() {
       var b = document.getElementById('next');
-      if (b && b.classList.contains('loading')) return;
+      if (inFlight || (b && b.classList.contains('loading'))) return;
       var tx = buildText(), h = tx.length + ':' + tx.slice(0, 160) + tx.slice(-100), ls = TY.store.get('lastsub', null);
       if (!editItem && ls && ls.h === h && Date.now() - ls.t < 900000 && !confirmedDup) {
         TY.confirm('همین را چند دقیقه پیش فرستاده‌ای', 'اگر ارسال قبلی انجام نشد دوباره بفرست؛ وگرنه «ارسال‌های من» را ببین تا دو بار برای ادمین نرود.', 'ارسال دوباره').then(function (y) { if (y) { confirmedDup = true; submit(); } });
         return;
       }
       TY.store.set('lastsub', {h: h, t: Date.now()});
+      inFlight = true; if (b) { b.classList.add('loading'); b.disabled = true; }
+      var unlock = function () { inFlight = false; if (b) { b.classList.remove('loading'); b.disabled = false; } };
+      var nonce = TY.nonce(kind, (editItem ? editItem.id : '') + h);
       TY.needV2().then(function (ok) {
-        if (!ok) return;
-        b.classList.add('loading');
+        if (!ok) { unlock(); return; }
         var text = buildText();
         cardExport().then(function (cx) { return TY.api(editItem ? 'my_edit' : 'submit', Object.assign({id: editItem ? editItem.id : undefined, type: kind, title: isCV ? (st.name + (titleTxt() ? ' | ' + titleTxt() : '')) : titleTxt(), text: text, tags: tags().join(' '), city: [st.city, st.area].filter(Boolean).join('، '),
-          contact: TY.en(st.contact || ''), vis: isCV ? st.vis : 'channel', target: isCV && st.vis === 'direct' ? st.target : '', fields: st}, cx)); }).then(function (r) {
-          b.classList.remove('loading');
+          contact: TY.en(st.contact || ''), vis: isCV ? st.vis : 'channel', target: isCV && st.vis === 'direct' ? st.target : '', fields: st, nonce: nonce}, cx)); }).then(function (r) {
+          unlock();
           if (!r || !r.ok) { TY.store.del('lastsub'); TY.toast(TY.errText(r), 'err'); return; }
+          TY.store.del('nonce_' + kind);
           if (r.dup) TY.toast('این را همین چند ساعت پیش فرستاده بودی؛ همان ارسال قبلی ثبت است');
           if (editItem) { TY.store.del(KEY); done(r.status); TY.me(); return; }
           var keep = JSON.parse(JSON.stringify(st)); delete keep.target; if (keep.vis === 'direct') keep.vis = isCV ? 'channel' : keep.vis; TY.store.set('last_' + kind, keep);
           TY.store.del(KEY); done(r.status);
           TY.me();
-        }).catch(function (e) { b.classList.remove('loading'); TY.toast(TY.errText({error: e && e.message === 'timeout' ? 'timeout' : 'net'}), 'err'); });
+        }).catch(function (e) { unlock(); TY.toast(TY.errText({error: e && e.message === 'timeout' ? 'timeout' : 'net'}), 'err'); });
       });
     }
     function done(status) {
